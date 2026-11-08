@@ -1,16 +1,24 @@
 package com.practiceserver.arenas;
 
+import java.util.ArrayList;
+import java.util.List;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 
-/** Gives the player gear. Item format: MATERIAL [amount] [enchant:level ...] [unbreakable] */
+/**
+ * Gives the player gear. Item format: MATERIAL [amount] [enchant:level ...] [unbreakable]
+ * Armor and offhand come from config. Main inventory/hotbar come from the player's saved
+ * layout (Kit Editor) or, if none, the default order from config.
+ */
 final class KitManager {
 
     private final ArenasPlugin plugin;
@@ -19,34 +27,80 @@ final class KitManager {
         this.plugin = plugin;
     }
 
+    private static boolean isArmor(ItemStack it) {
+        String n = it.getType().name();
+        return n.endsWith("_HELMET") || n.endsWith("_CHESTPLATE") || n.endsWith("_LEGGINGS") || n.endsWith("_BOOTS");
+    }
+
+    private List<ItemStack> parseItems(String mode) {
+        List<ItemStack> out = new ArrayList<>();
+        ConfigurationSection kit = plugin.getConfig().getConfigurationSection("kits." + mode);
+        if (kit == null) return out;
+        for (String line : kit.getStringList("items")) {
+            ItemStack it = parse(line);
+            if (it != null) out.add(it);
+        }
+        return out;
+    }
+
+    /** Default arrangement (player slots 0-35, hotbar first). */
+    ItemStack[] defaultLayout(String mode) {
+        Inventory tmp = Bukkit.createInventory(null, 36);
+        for (ItemStack it : parseItems(mode)) {
+            if (!isArmor(it)) tmp.addItem(it);
+        }
+        ItemStack[] out = new ItemStack[36];
+        ItemStack[] contents = tmp.getContents();
+        for (int i = 0; i < 36 && i < contents.length; i++) out[i] = contents[i];
+        return out;
+    }
+
+    ItemStack[] layoutFor(Player p, String mode) {
+        ItemStack[] saved = plugin.layouts().get(p.getUniqueId(), mode);
+        return saved != null ? saved : defaultLayout(mode);
+    }
+
     void give(Player p, String mode) {
         PlayerInventory inv = p.getInventory();
         inv.clear();
-        ConfigurationSection kit = plugin.getConfig().getConfigurationSection("kits." + mode);
-        if (kit == null) return;
 
-        for (String line : kit.getStringList("items")) {
-            ItemStack it = parse(line);
-            if (it == null) continue;
-            String n = it.getType().name();
-            if (n.endsWith("_HELMET") && inv.getHelmet() == null) {
-                inv.setHelmet(it);
-            } else if (n.endsWith("_CHESTPLATE") && inv.getChestplate() == null) {
-                inv.setChestplate(it);
-            } else if (n.endsWith("_LEGGINGS") && inv.getLeggings() == null) {
-                inv.setLeggings(it);
-            } else if (n.endsWith("_BOOTS") && inv.getBoots() == null) {
-                inv.setBoots(it);
-            } else {
-                inv.addItem(it);
-            }
+        ItemStack[] layout = layoutFor(p, mode);
+        for (int i = 0; i < 36; i++) {
+            if (layout[i] != null) inv.setItem(i, layout[i].clone());
         }
 
-        String off = kit.getString("offhand", "");
+        for (ItemStack it : parseItems(mode)) {
+            String n = it.getType().name();
+            if (n.endsWith("_HELMET")) inv.setHelmet(it);
+            else if (n.endsWith("_CHESTPLATE")) inv.setChestplate(it);
+            else if (n.endsWith("_LEGGINGS")) inv.setLeggings(it);
+            else if (n.endsWith("_BOOTS")) inv.setBoots(it);
+        }
+
+        String off = plugin.getConfig().getString("kits." + mode + ".offhand", "");
         if (off != null && !off.isBlank()) {
             ItemStack it = parse(off);
             if (it != null) inv.setItemInOffHand(it);
         }
+    }
+
+    ItemStack parseLine(String line) {
+        return parse(line);
+    }
+
+    /** Fixed gear shown in the editor: helmet, chestplate, leggings, boots, offhand. */
+    ItemStack[] armorAndOffhand(String mode) {
+        ItemStack[] out = new ItemStack[5];
+        for (ItemStack it : parseItems(mode)) {
+            String n = it.getType().name();
+            if (n.endsWith("_HELMET")) out[0] = it;
+            else if (n.endsWith("_CHESTPLATE")) out[1] = it;
+            else if (n.endsWith("_LEGGINGS")) out[2] = it;
+            else if (n.endsWith("_BOOTS")) out[3] = it;
+        }
+        String off = plugin.getConfig().getString("kits." + mode + ".offhand", "");
+        if (off != null && !off.isBlank()) out[4] = parse(off);
+        return out;
     }
 
     private ItemStack parse(String line) {

@@ -1,16 +1,22 @@
 package com.practiceserver.arenas;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 
-/** Frees the arena slot when the player leaves, dies or changes world. */
+/** Ends the session (frees the slot, removes the bot, clears the kit) when a player leaves, dies or changes world. */
 final class SessionListener implements Listener {
 
     private final ArenasPlugin plugin;
+    private final Set<UUID> clearOnRespawn = new HashSet<>();
 
     SessionListener(ArenasPlugin plugin) {
         this.plugin = plugin;
@@ -19,30 +25,46 @@ final class SessionListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         Player p = e.getPlayer();
-        if (plugin.arenas().release(p.getUniqueId()) != null) {
+        UUID id = p.getUniqueId();
+        plugin.editor().forget(id);
+        if (plugin.sessions().get(id) != null) {
+            plugin.sessions().end(id);
             p.getInventory().clear();
         }
     }
 
     @EventHandler
     public void onWorldChange(PlayerChangedWorldEvent e) {
-        ArenaManager.Assignment as = plugin.arenas().current(e.getPlayer().getUniqueId());
-        if (as == null) return;
-        String arenaWorld = as.arena().spawns.get(as.index()).world();
-        if (!e.getPlayer().getWorld().getName().equals(arenaWorld)) {
-            plugin.arenas().release(e.getPlayer().getUniqueId());
+        Player p = e.getPlayer();
+        SessionManager.Session s = plugin.sessions().get(p.getUniqueId());
+        if (s == null) return;
+        if (!p.getWorld().getName().equals(s.spawn.getWorld().getName())) {
+            plugin.sessions().end(p.getUniqueId());
+            p.getInventory().clear();
         }
     }
 
     @EventHandler
     public void onDeath(PlayerDeathEvent e) {
         Player p = e.getEntity();
-        if (plugin.arenas().release(p.getUniqueId()) == null) return;
+        UUID id = p.getUniqueId();
+        if (plugin.sessions().get(id) == null) return;
+        plugin.sessions().end(id);
+        clearOnRespawn.add(id);
         if (plugin.getConfig().getBoolean("clear-drops-on-death", true)) {
             e.setKeepInventory(false);
             e.getDrops().clear();
             e.setKeepLevel(false);
             e.setDroppedExp(0);
         }
+    }
+
+    @EventHandler
+    public void onRespawn(PlayerRespawnEvent e) {
+        Player p = e.getPlayer();
+        if (!clearOnRespawn.remove(p.getUniqueId())) return;
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (p.isOnline() && plugin.sessions().get(p.getUniqueId()) == null) p.getInventory().clear();
+        }, 2L);
     }
 }

@@ -1,9 +1,9 @@
 package com.practiceserver.arenas;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -23,28 +23,54 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         switch (cmd.getName().toLowerCase(Locale.ROOT)) {
-            case "practice" -> {
-                if (sender instanceof Player p) plugin.menus().openModes(p);
-                else Text.send(sender, "&cOnly players can use this.");
-            }
-            case "leave" -> {
-                if (sender instanceof Player p) leave(p);
-                else Text.send(sender, "&cOnly players can use this.");
-            }
+            case "practicecore" -> core(sender, args);
+            case "leave" -> player(sender, p -> plugin.sessions().leave(p));
+            case "fight" -> player(sender, p -> plugin.sessions().fight(p));
             case "parena" -> admin(sender, args);
             default -> { return false; }
         }
         return true;
     }
 
-    private void leave(Player p) {
-        plugin.arenas().release(p.getUniqueId());
-        p.getInventory().clear();
-        String c = plugin.getConfig().getString("lobby-command", "warp lobby {player}");
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), c.replace("{player}", p.getName()));
+    private interface PlayerAction { void run(Player p); }
+
+    private void player(CommandSender s, PlayerAction a) {
+        if (s instanceof Player p) a.run(p);
+        else Text.send(s, "&cOnly players can use this.");
+    }
+
+    /** /pc, /practicecore */
+    private void core(CommandSender s, String[] a) {
+        if (a.length == 0) {
+            player(s, p -> plugin.menus().openHub(p));
+            return;
+        }
+        switch (a[0].toLowerCase(Locale.ROOT)) {
+            case "play" -> player(s, p -> plugin.menus().openModes(p, false));
+            case "kit", "kits", "editor" -> player(s, p -> plugin.menus().openModes(p, true));
+            case "fight", "start" -> player(s, p -> plugin.sessions().fight(p));
+            case "leave", "lobby" -> player(s, p -> plugin.sessions().leave(p));
+            case "admin" -> {
+                if (!s.hasPermission("practicecore.admin")) {
+                    Text.send(s, "&cYou do not have permission.");
+                    return;
+                }
+                admin(s, Arrays.copyOfRange(a, 1, a.length));
+            }
+            default -> {
+                Text.send(s, "&e/pc &7- open the menu");
+                Text.send(s, "&e/pc kit &7- kit editor");
+                Text.send(s, "&e/pc fight &7- start the fight");
+                Text.send(s, "&e/pc leave &7- back to the lobby");
+            }
+        }
     }
 
     private void admin(CommandSender s, String[] a) {
+        if (!s.hasPermission("practicecore.admin")) {
+            Text.send(s, "&cYou do not have permission.");
+            return;
+        }
         if (a.length == 0) {
             Text.send(s, "&e/parena create <type> <id> &7- new arena of a type");
             Text.send(s, "&e/parena addspawn <id> &7- add your position as a player slot");
@@ -101,6 +127,7 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
             case "reload" -> {
                 plugin.reloadConfig();
                 am.load();
+                plugin.layouts().load();
                 Text.send(s, "&aReloaded.");
             }
             default -> Text.send(s, "&cUnknown subcommand. Type /parena for help.");
@@ -110,7 +137,13 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String label, String[] args) {
         List<String> out = new ArrayList<>();
-        if (!cmd.getName().equalsIgnoreCase("parena")) return out;
+        String name = cmd.getName().toLowerCase(Locale.ROOT);
+        if (name.equals("practicecore") && args.length == 1) {
+            for (String x : new String[]{"play", "kit", "fight", "leave", "admin"})
+                if (x.startsWith(args[0].toLowerCase(Locale.ROOT))) out.add(x);
+            return out;
+        }
+        if (!name.equals("parena")) return out;
         if (args.length == 1) {
             for (String x : new String[]{"create", "addspawn", "remove", "list", "tp", "reload"})
                 if (x.startsWith(args[0].toLowerCase(Locale.ROOT))) out.add(x);

@@ -1,21 +1,26 @@
-name: PracticeArenas
-version: 1.0.0
+name: PracticeCore
+version: 1.1.0
 main: com.practiceserver.arenas.ArenasPlugin
 api-version: '1.21'
-description: Mode menu, arena slots, player kits and PracticeBot spawning.
+description: Menus, arenas, difficulty, kit editor and PracticeBot control.
 softdepend: [PracticeBot]
 commands:
-  practice:
-    description: Open the practice menu
-    permission: practicearenas.use
+  practicecore:
+    description: Open the PracticeCore menu
+    aliases: [pc, practice]
+    permission: practicecore.use
   leave:
     description: Leave the arena and go back to the lobby
-    permission: practicearenas.use
+    permission: practicecore.use
+  fight:
+    description: Start the fight after setting up your kit
+    aliases: [start]
+    permission: practicecore.use
   parena:
     description: Arena admin commands
-    permission: practicearenas.admin
+    permission: practicecore.admin
 permissions:
-  practicearenas.use:
+  practicecore.use:
     default: true
-  practicearenas.admin:
+  practicecore.admin:
     default: op

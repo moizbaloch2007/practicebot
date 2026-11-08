@@ -1,30 +1,47 @@
 # ==========================================================
-#  PracticeArenas config
-#  Colors use & codes. Reload with /parena reload
+#  PracticeCore config      (reload with /pc admin reload)
+#  Colors use & codes.
 # ==========================================================
 
-# Print the bot spawn command to the console every time (helps when testing).
+# Print the commands the plugin runs to the console (helps when testing).
 debug: false
 
-# Command used to send a player back to the lobby (/leave). Runs as console.
+# Command used to send a player back to the lobby. Runs as console.
 lobby-command: "warp lobby {player}"
 
 # Command that spawns the PracticeBot bot. Runs as console.
-# {template} {player} {world} {x} {y} {z} {yaw} {pitch} are filled in.
 bot-spawn-command: "pbadmin template spawn {template} {player} {world} {x} {y} {z} {yaw} {pitch}"
 
 # How far in front of the player's spawn the bot appears (blocks).
 bot-distance: 8.0
 
-# Wait this long after teleport before spawning the bot (20 ticks = 1 second).
-bot-spawn-delay-ticks: 10
+# After picking an arena the player gets this many seconds to set up their
+# kit. The fight also starts when they type /fight or click the START button.
+# Set 0 to wait forever for /fight.
+prep-seconds: 30
+
+# Countdown (3, 2, 1) before the bot spawns.
+countdown-seconds: 3
 
 # Players who die lose their kit instead of dropping it in the arena.
 clear-drops-on-death: true
 
+# When a fight ends the player's bots are removed (so an old bot never attacks
+# the same player later). The plugin lists the player's bots with PracticeBot's
+# command and runs the despawn command for every id it finds.
+bot-cleanup:
+  enabled: true
+  list-command: "pbadmin bot list --target {player}"
+  despawn-command: "pbadmin bot despawn {id}"
+
 menus:
-  mode-title: "&8&lPractice Modes"
+  hub-title: "&8&lPracticeCore"
+  hub-size: 27
+  mode-title: "&8&lChoose Mode"
+  editor-mode-title: "&8&lKit Editor - Choose Mode"
   mode-size: 27
+  diff-title: "&8&lChoose Difficulty"
+  diff-size: 27
   type-title: "&8&lChoose Arena"
   type-size: 27
   filler: true
@@ -34,53 +51,97 @@ messages:
   no-permission: "&cYou do not have permission for this mode."
   arena-full: "&cAll arenas of that type are full or not built yet. Try another one."
   world-missing: "&cThat arena's world is not loaded. Tell an admin."
-  started: "&aGood luck! Use &e/leave &ato go back to the lobby."
+  prep: "&aSet up your hotbar. Nothing attacks you until you start."
+  prep-help: "&7Or type &e/fight&7. Use &e/leave &7to go back to the lobby."
+  no-session: "&cYou are not in a practice session. Use &e/pc&c."
+  kit-saved: "&aKit layout saved."
+  kit-reset: "&eKit reset to the default layout."
+  kit-deleted: "&cItem deleted from the kit."
+  kit-added: "&aAdded to your kit."
+  kit-full: "&cYour kit is full. Delete an item first."
+  kit-cursor: "&cPut the item you are holding on a slot first."
+
+# ---------------------------------------------------------- main menu
+hub:
+  play:
+    slot: 11
+    icon: DIAMOND_SWORD
+    name: "&a&lPlay"
+    lore: ["&7Pick a mode, difficulty and arena"]
+  editor:
+    slot: 13
+    icon: ANVIL
+    name: "&e&lKit Editor"
+    lore: ["&7Arrange your hotbar for each mode"]
+  leave:
+    slot: 15
+    icon: RED_BED
+    name: "&c&lBack to Lobby"
+    lore: ["&7Leave your practice session"]
+
+# ---------------------------------------------------------- difficulties
+difficulties:
+  easy:
+    slot: 11
+    icon: LIME_CONCRETE
+    name: "&a&lEasy"
+    lore: ["&7Slow bot, makes mistakes"]
+  medium:
+    slot: 13
+    icon: YELLOW_CONCRETE
+    name: "&e&lMedium"
+    lore: ["&7Balanced bot"]
+  hard:
+    slot: 15
+    icon: RED_CONCRETE
+    name: "&c&lHard"
+    lore: ["&7Fast, accurate and aggressive"]
 
 # ---------------------------------------------------------- modes
-# template   = PracticeBot template that is spawned (see /pbadmin template list)
+# templates = PracticeBot template per difficulty (from pa_templates.yml)
 # permission = permission needed to pick the mode (leave empty for everyone)
 modes:
   normal:
     slot: 10
     icon: DIAMOND_SWORD
     name: "&e&lNormal"
-    lore: ["&7Sword PvP bot"]
-    template: arena_normal
+    lore: ["&7Sword PvP"]
+    templates: {easy: pa_normal_easy, medium: pa_normal_medium, hard: pa_normal_hard}
     permission: practicebot.spawn.normal
   cpvp:
     slot: 11
     icon: END_CRYSTAL
-    name: "&d&lCPVP (Crystal)"
-    lore: ["&7Crystal PvP bot"]
-    template: arena_cpvp
+    name: "&d&lCPVP"
+    lore: ["&7Crystal PvP"]
+    templates: {easy: pa_cpvp_easy, medium: pa_cpvp_medium, hard: pa_cpvp_hard}
     permission: practicebot.spawn.cpvp
   mace:
     slot: 12
     icon: MACE
     name: "&b&lMace"
-    lore: ["&7Mace PvP bot"]
-    template: arena_mace
+    lore: ["&7Mace PvP"]
+    templates: {easy: pa_mace_easy, medium: pa_mace_medium, hard: pa_mace_hard}
     permission: practicebot.spawn.mace
   spearmace:
     slot: 14
     icon: TRIDENT
     name: "&3&lSpear-Mace"
-    lore: ["&7Spear-mace PvP bot"]
-    template: spearmace
+    lore: ["&7Spear and mace PvP"]
+    templates: {easy: pa_spearmace_easy, medium: pa_spearmace_medium, hard: pa_spearmace_hard}
     permission: practicebot.spawn.spear-mace
   cart:
     slot: 15
     icon: TNT_MINECART
     name: "&c&lCart"
-    lore: ["&7TNT minecart PvP bot"]
-    template: arena_cart
+    lore: ["&7TNT minecart PvP"]
+    templates: {easy: pa_cart_easy, medium: pa_cart_medium, hard: pa_cart_hard}
     permission: practicebot.spawn.cart
   uhc:
     slot: 16
     icon: LAVA_BUCKET
     name: "&6&lUHC"
-    lore: ["&7UHC bot (bow, lava, webs)"]
-    template: arena_uhc
+    lore: ["&7Bow, lava and webs"]
+    templates: {easy: pa_uhc_easy, medium: pa_uhc_medium, hard: pa_uhc_hard}
     permission: practicebot.spawn.uhc
 
 # ---------------------------------------------------------- arena types
@@ -105,8 +166,11 @@ arena-types:
     lore: ["&7Sand arena"]
 
 # ---------------------------------------------------------- player kits
+# items  = default kit (first items fill the hotbar). Armor goes on automatically
+#          and cannot be moved in the editor.
+# extras = what players can add from the editor's "Extra Materials" menu.
 # Item format: MATERIAL [amount] [enchant:level ...] [unbreakable]
-# Armor goes on automatically. Bad names are skipped and logged.
+# Bad names are skipped and logged to the console.
 kits:
   normal:
     items:
@@ -118,6 +182,17 @@ kits:
       - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3
       - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3
       - NETHERITE_BOOTS 1 protection:4 unbreaking:3
+    extras:
+      - NETHERITE_SWORD 1 sharpness:5 unbreaking:3
+      - DIAMOND_SWORD 1 sharpness:5 unbreaking:3
+      - NETHERITE_AXE 1 sharpness:5 unbreaking:3
+      - DIAMOND_AXE 1 sharpness:5 unbreaking:3
+      - SHIELD 1 unbreaking:3
+      - GOLDEN_APPLE 16
+      - ENCHANTED_GOLDEN_APPLE 4
+      - COOKED_BEEF 32
+      - TOTEM_OF_UNDYING 1
+      - ENDER_PEARL 16
   cpvp:
     offhand: TOTEM_OF_UNDYING 1
     items:
@@ -131,6 +206,19 @@ kits:
       - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3
       - NETHERITE_LEGGINGS 1 blast_protection:4 unbreaking:3
       - NETHERITE_BOOTS 1 protection:4 unbreaking:3
+    extras:
+      - NETHERITE_SWORD 1 sharpness:5 unbreaking:3
+      - NETHERITE_AXE 1 sharpness:5 unbreaking:3
+      - NETHERITE_PICKAXE 1 efficiency:5 unbreaking:3
+      - END_CRYSTAL 64
+      - OBSIDIAN 64
+      - ENDER_PEARL 16
+      - GOLDEN_APPLE 16
+      - ENCHANTED_GOLDEN_APPLE 4
+      - TOTEM_OF_UNDYING 1
+      - COBWEB 16
+      - EXPERIENCE_BOTTLE 64
+      - SHIELD 1 unbreaking:3
   mace:
     offhand: TOTEM_OF_UNDYING 1
     items:
@@ -144,6 +232,18 @@ kits:
       - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3
       - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3
       - NETHERITE_BOOTS 1 protection:4 unbreaking:3
+    extras:
+      - MACE 1 density:5 breach:4 unbreaking:3
+      - MACE 1 density:5 wind_burst:3 unbreaking:3
+      - NETHERITE_SWORD 1 sharpness:5 unbreaking:3
+      - NETHERITE_AXE 1 sharpness:5
+      - WIND_CHARGE 64
+      - ELYTRA 1 unbreaking:3
+      - FIREWORK_ROCKET 64
+      - ENDER_PEARL 16
+      - GOLDEN_APPLE 16
+      - TOTEM_OF_UNDYING 1
+      - SHIELD 1 unbreaking:3
   spearmace:
     offhand: TOTEM_OF_UNDYING 1
     items:
@@ -156,6 +256,14 @@ kits:
       - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3
       - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3
       - NETHERITE_BOOTS 1 protection:4 unbreaking:3
+    extras:
+      - NETHERITE_SPEAR 1 unbreaking:3
+      - MACE 1 density:5 breach:4 unbreaking:3
+      - WIND_CHARGE 64
+      - ENDER_PEARL 16
+      - GOLDEN_APPLE 16
+      - TOTEM_OF_UNDYING 1
+      - SHIELD 1 unbreaking:3
   cart:
     offhand: TOTEM_OF_UNDYING 1
     items:
@@ -170,6 +278,20 @@ kits:
       - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3
       - NETHERITE_LEGGINGS 1 blast_protection:4 unbreaking:3
       - NETHERITE_BOOTS 1 protection:4 unbreaking:3
+    extras:
+      - NETHERITE_SWORD 1 sharpness:5 unbreaking:3
+      - TNT_MINECART 16
+      - RAIL 64
+      - POWERED_RAIL 64
+      - ACTIVATOR_RAIL 16
+      - DETECTOR_RAIL 16
+      - FLINT_AND_STEEL 1
+      - CROSSBOW 1 quick_charge:3 unbreaking:3
+      - ARROW 64
+      - OBSIDIAN 64
+      - ENDER_PEARL 16
+      - GOLDEN_APPLE 16
+      - TOTEM_OF_UNDYING 1
   uhc:
     items:
       - DIAMOND_SWORD 1 sharpness:3
@@ -185,3 +307,17 @@ kits:
       - DIAMOND_CHESTPLATE 1 protection:3
       - DIAMOND_LEGGINGS 1 protection:3
       - DIAMOND_BOOTS 1 protection:3
+    extras:
+      - DIAMOND_SWORD 1 sharpness:3
+      - DIAMOND_AXE 1 sharpness:3
+      - BOW 1 power:3
+      - CROSSBOW 1
+      - ARROW 64
+      - WATER_BUCKET 1
+      - LAVA_BUCKET 1
+      - COBWEB 16
+      - GOLDEN_APPLE 8
+      - COOKED_BEEF 32
+      - SHIELD 1
+      - FISHING_ROD 1
+      - FLINT_AND_STEEL 1
