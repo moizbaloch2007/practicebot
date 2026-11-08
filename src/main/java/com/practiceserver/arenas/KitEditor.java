@@ -219,7 +219,7 @@ final class KitEditor implements Listener {
             harvest(id, top);
             plugin.layouts().set(id, h.mode, working.get(id));
             working.remove(id);
-            Bukkit.getScheduler().runTask(plugin, p::closeInventory);
+            Bukkit.getScheduler().runTask(plugin, () -> p.closeInventory());
             Text.send(p, plugin.msg("kit-saved", "&aKit layout saved."));
         } else if (raw == ADD) {
             if (hasItem(e.getCursor())) {
@@ -237,7 +237,7 @@ final class KitEditor implements Listener {
             Text.send(p, plugin.msg("kit-reset", "&eKit reset to the default layout."));
         } else if (raw == CLOSE) {
             working.remove(id);
-            Bukkit.getScheduler().runTask(plugin, p::closeInventory);
+            Bukkit.getScheduler().runTask(plugin, () -> p.closeInventory());
         }
     }
 
