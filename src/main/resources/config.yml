@@ -1,0 +1,187 @@
+# ==========================================================
+#  PracticeArenas config
+#  Colors use & codes. Reload with /parena reload
+# ==========================================================
+
+# Print the bot spawn command to the console every time (helps when testing).
+debug: false
+
+# Command used to send a player back to the lobby (/leave). Runs as console.
+lobby-command: "warp lobby {player}"
+
+# Command that spawns the PracticeBot bot. Runs as console.
+# {template} {player} {world} {x} {y} {z} {yaw} {pitch} are filled in.
+bot-spawn-command: "pbadmin template spawn {template} {player} {world} {x} {y} {z} {yaw} {pitch}"
+
+# How far in front of the player's spawn the bot appears (blocks).
+bot-distance: 8.0
+
+# Wait this long after teleport before spawning the bot (20 ticks = 1 second).
+bot-spawn-delay-ticks: 10
+
+# Players who die lose their kit instead of dropping it in the arena.
+clear-drops-on-death: true
+
+menus:
+  mode-title: "&8&lPractice Modes"
+  mode-size: 27
+  type-title: "&8&lChoose Arena"
+  type-size: 27
+  filler: true
+
+messages:
+  prefix: "&8[&bPractice&8] "
+  no-permission: "&cYou do not have permission for this mode."
+  arena-full: "&cAll arenas of that type are full or not built yet. Try another one."
+  world-missing: "&cThat arena's world is not loaded. Tell an admin."
+  started: "&aGood luck! Use &e/leave &ato go back to the lobby."
+
+# ---------------------------------------------------------- modes
+# template   = PracticeBot template that is spawned (see /pbadmin template list)
+# permission = permission needed to pick the mode (leave empty for everyone)
+modes:
+  normal:
+    slot: 10
+    icon: DIAMOND_SWORD
+    name: "&e&lNormal"
+    lore: ["&7Sword PvP bot"]
+    template: arena_normal
+    permission: practicebot.spawn.normal
+  cpvp:
+    slot: 11
+    icon: END_CRYSTAL
+    name: "&d&lCPVP (Crystal)"
+    lore: ["&7Crystal PvP bot"]
+    template: arena_cpvp
+    permission: practicebot.spawn.cpvp
+  mace:
+    slot: 12
+    icon: MACE
+    name: "&b&lMace"
+    lore: ["&7Mace PvP bot"]
+    template: arena_mace
+    permission: practicebot.spawn.mace
+  spearmace:
+    slot: 14
+    icon: TRIDENT
+    name: "&3&lSpear-Mace"
+    lore: ["&7Spear-mace PvP bot"]
+    template: spearmace
+    permission: practicebot.spawn.spear-mace
+  cart:
+    slot: 15
+    icon: TNT_MINECART
+    name: "&c&lCart"
+    lore: ["&7TNT minecart PvP bot"]
+    template: arena_cart
+    permission: practicebot.spawn.cart
+  uhc:
+    slot: 16
+    icon: LAVA_BUCKET
+    name: "&6&lUHC"
+    lore: ["&7UHC bot (bow, lava, webs)"]
+    template: arena_uhc
+    permission: practicebot.spawn.uhc
+
+# ---------------------------------------------------------- arena types
+# Build arenas of a type with:  /parena create <type> <id>
+# then stand on each player spawn and run:  /parena addspawn <id>
+# Every spawn is one player slot (6 spawns = 6 players in that arena).
+arena-types:
+  plains:
+    slot: 11
+    icon: GRASS_BLOCK
+    name: "&a&lPlains"
+    lore: ["&7Open grass arena"]
+  nether:
+    slot: 13
+    icon: NETHERRACK
+    name: "&c&lNether"
+    lore: ["&7Nether arena"]
+  desert:
+    slot: 15
+    icon: SAND
+    name: "&e&lDesert"
+    lore: ["&7Sand arena"]
+
+# ---------------------------------------------------------- player kits
+# Item format: MATERIAL [amount] [enchant:level ...] [unbreakable]
+# Armor goes on automatically. Bad names are skipped and logged.
+kits:
+  normal:
+    items:
+      - NETHERITE_SWORD 1 sharpness:5 unbreaking:3
+      - SHIELD 1 unbreaking:3
+      - GOLDEN_APPLE 16
+      - COOKED_BEEF 32
+      - NETHERITE_HELMET 1 protection:4 unbreaking:3
+      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3
+      - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3
+      - NETHERITE_BOOTS 1 protection:4 unbreaking:3
+  cpvp:
+    offhand: TOTEM_OF_UNDYING 1
+    items:
+      - NETHERITE_SWORD 1 sharpness:5 unbreaking:3
+      - END_CRYSTAL 64
+      - OBSIDIAN 64
+      - GOLDEN_APPLE 16
+      - ENDER_PEARL 16
+      - TOTEM_OF_UNDYING 3
+      - NETHERITE_HELMET 1 protection:4 unbreaking:3
+      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3
+      - NETHERITE_LEGGINGS 1 blast_protection:4 unbreaking:3
+      - NETHERITE_BOOTS 1 protection:4 unbreaking:3
+  mace:
+    offhand: TOTEM_OF_UNDYING 1
+    items:
+      - MACE 1 density:5 breach:4 unbreaking:3
+      - NETHERITE_AXE 1 sharpness:5
+      - WIND_CHARGE 64
+      - GOLDEN_APPLE 16
+      - ENDER_PEARL 16
+      - TOTEM_OF_UNDYING 3
+      - NETHERITE_HELMET 1 protection:4 unbreaking:3
+      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3
+      - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3
+      - NETHERITE_BOOTS 1 protection:4 unbreaking:3
+  spearmace:
+    offhand: TOTEM_OF_UNDYING 1
+    items:
+      - NETHERITE_SPEAR 1 unbreaking:3
+      - MACE 1 density:5 breach:4 unbreaking:3
+      - WIND_CHARGE 64
+      - GOLDEN_APPLE 16
+      - TOTEM_OF_UNDYING 3
+      - NETHERITE_HELMET 1 protection:4 unbreaking:3
+      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3
+      - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3
+      - NETHERITE_BOOTS 1 protection:4 unbreaking:3
+  cart:
+    offhand: TOTEM_OF_UNDYING 1
+    items:
+      - NETHERITE_SWORD 1 sharpness:5 unbreaking:3
+      - TNT_MINECART 16
+      - RAIL 64
+      - ACTIVATOR_RAIL 16
+      - FLINT_AND_STEEL 1
+      - OBSIDIAN 32
+      - GOLDEN_APPLE 16
+      - NETHERITE_HELMET 1 protection:4 unbreaking:3
+      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3
+      - NETHERITE_LEGGINGS 1 blast_protection:4 unbreaking:3
+      - NETHERITE_BOOTS 1 protection:4 unbreaking:3
+  uhc:
+    items:
+      - DIAMOND_SWORD 1 sharpness:3
+      - BOW 1 power:3
+      - CROSSBOW 1
+      - ARROW 64
+      - WATER_BUCKET 1
+      - LAVA_BUCKET 1
+      - COBWEB 16
+      - GOLDEN_APPLE 8
+      - COOKED_BEEF 32
+      - DIAMOND_HELMET 1 protection:3
+      - DIAMOND_CHESTPLATE 1 protection:3
+      - DIAMOND_LEGGINGS 1 protection:3
+      - DIAMOND_BOOTS 1 protection:3
