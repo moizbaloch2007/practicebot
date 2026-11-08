@@ -13,6 +13,7 @@ public final class ArenasPlugin extends JavaPlugin {
     private KitEditor editor;
     private SessionManager sessions;
     private BotCleaner cleaner;
+    private RegenManager regen;
 
     @Override
     public void onEnable() {
@@ -26,6 +27,20 @@ public final class ArenasPlugin extends JavaPlugin {
         cleaner = new BotCleaner(this);
         arenas.load();
         layouts.load();
+
+        boolean hasWorldEdit = getServer().getPluginManager().getPlugin("FastAsyncWorldEdit") != null
+                || getServer().getPluginManager().getPlugin("WorldEdit") != null;
+        if (hasWorldEdit && getConfig().getBoolean("regen.enabled", true)) {
+            try {
+                regen = new RegenManager(this);
+                getLogger().info("Arena regeneration enabled.");
+            } catch (Throwable t) {
+                regen = null;
+                getLogger().warning("Arena regeneration is off: " + t);
+            }
+        } else {
+            getLogger().warning("Arena regeneration is off (FastAsyncWorldEdit not found or regen.enabled is false).");
+        }
 
         getServer().getPluginManager().registerEvents(menus, this);
         getServer().getPluginManager().registerEvents(editor, this);
@@ -55,6 +70,7 @@ public final class ArenasPlugin extends JavaPlugin {
     KitEditor editor() { return editor; }
     SessionManager sessions() { return sessions; }
     BotCleaner cleaner() { return cleaner; }
+    RegenManager regen() { return regen; }
 
     String msg(String key, String def) {
         String prefix = getConfig().getString("messages.prefix", "&8[&bPractice&8] ");

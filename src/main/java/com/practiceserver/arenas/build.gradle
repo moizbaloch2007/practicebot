@@ -1,0 +1,28 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.practiceserver'
+version = '1.2.0'
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://repo.papermc.io/repository/maven-public/' }
+    maven { url = 'https://maven.enginehub.org/repo/' }
+}
+
+dependencies {
+    compileOnly 'io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT'
+    // WorldEdit API only for compiling. FastAsyncWorldEdit supplies it on the server.
+    compileOnly('com.sk89q.worldedit:worldedit-core:7.3.+') { transitive = false }
+    compileOnly('com.sk89q.worldedit:worldedit-bukkit:7.3.+') { transitive = false }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+}
+
+jar {
+    archiveFileName = 'PracticeCore.jar'
+}

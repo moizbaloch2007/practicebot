@@ -1,0 +1,26 @@
+name: PracticeCore
+version: 1.2.0
+main: com.practiceserver.arenas.ArenasPlugin
+api-version: '1.21'
+description: Menus, arenas, difficulty, kit editor and PracticeBot control.
+softdepend: [PracticeBot, FastAsyncWorldEdit, WorldEdit]
+commands:
+  practicecore:
+    description: Open the PracticeCore menu
+    aliases: [pc, practice]
+    permission: practicecore.use
+  leave:
+    description: Leave the arena and go back to the lobby
+    permission: practicecore.use
+  fight:
+    description: Start the fight after setting up your kit
+    aliases: [start]
+    permission: practicecore.use
+  parena:
+    description: Arena admin commands
+    permission: practicecore.admin
+permissions:
+  practicecore.use:
+    default: true
+  practicecore.admin:
+    default: op

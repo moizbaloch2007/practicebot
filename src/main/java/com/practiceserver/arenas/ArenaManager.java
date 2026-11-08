@@ -39,6 +39,19 @@ final class ArenaManager {
                 SpawnPoint p = SpawnPoint.parse(s);
                 if (p != null) a.spawns.add(p);
             }
+            a.schem = sec.getString(id + ".schem", "");
+            String[] o = sec.getString(id + ".origin", "").split(";");
+            if (o.length == 4) {
+                try {
+                    a.originWorld = o[0];
+                    a.ox = Integer.parseInt(o[1]);
+                    a.oy = Integer.parseInt(o[2]);
+                    a.oz = Integer.parseInt(o[3]);
+                    a.hasOrigin = true;
+                } catch (NumberFormatException ignored) {
+                    a.hasOrigin = false;
+                }
+            }
             arenas.put(id.toLowerCase(Locale.ROOT), a);
         }
     }
@@ -51,6 +64,8 @@ final class ArenaManager {
             List<String> list = new ArrayList<>();
             for (SpawnPoint p : a.spawns) list.add(p.serialize());
             yaml.set("arenas." + a.id + ".spawns", list);
+            if (a.schem != null && !a.schem.isEmpty()) yaml.set("arenas." + a.id + ".schem", a.schem);
+            if (a.hasOrigin) yaml.set("arenas." + a.id + ".origin", a.originWorld + ";" + a.ox + ";" + a.oy + ";" + a.oz);
         }
         try {
             plugin.getDataFolder().mkdirs();
@@ -58,6 +73,16 @@ final class ArenaManager {
         } catch (IOException e) {
             plugin.getLogger().warning("Could not save arenas.yml: " + e.getMessage());
         }
+    }
+
+    void setOrigin(Arena a, String schem, String world, int x, int y, int z) {
+        a.schem = schem;
+        a.originWorld = world;
+        a.ox = x;
+        a.oy = y;
+        a.oz = z;
+        a.hasOrigin = true;
+        save();
     }
 
     Arena get(String id) {
