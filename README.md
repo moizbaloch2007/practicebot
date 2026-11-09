@@ -1,15 +1,15 @@
-# PracticeCore
+# PracticeCore - where every file goes
 
-Hub menu -> mode -> difficulty -> arena -> prep time (set your hotbar) -> /fight -> countdown -> bot.
-Kit editor with Extra Materials. Commands: /pc, /practicecore, /leave, /fight, /parena
+PracticeCore/                         <- the folder you upload to GitHub
+  build.gradle                        <- ROOT folder (NOT inside src)
+  settings.gradle
+  README.md
+  src/main/resources/plugin.yml       <- resources folder
+  src/main/resources/config.yml
+  src/main/java/com/practiceserver/arenas/
+      Arena.java ArenaManager.java ArenasPlugin.java BotCleaner.java
+      CommandHandler.java KitEditor.java KitManager.java LayoutManager.java
+      MenuManager.java RegenManager.java SessionListener.java SessionManager.java
+      SpawnPoint.java Text.java        <- only .java files in this folder
 
-## Build the jar (no installs, uses GitHub)
-1. Open your GitHub repository, replace the files with the ones in this folder
-   (Add file -> Upload files; the .github/workflows/main.yml you made earlier can stay).
-2. Wait ~2 minutes in the Actions tab for the green check.
-3. Download the "PracticeCore" artifact, unzip -> PracticeCore.jar
-4. Delete the old PracticeArenas.jar from /plugins, add PracticeCore.jar, restart.
-5. Copy plugins/PracticeArenas/arenas.yml to plugins/PracticeCore/arenas.yml (keeps your arenas).
-
-## Bot templates
-Paste pa_templates.yml under "templates:" in plugins/PracticeBot/bot_templates.yml, then /pbadmin reload.
+Your .github/workflows/main.yml on GitHub stays as it is.

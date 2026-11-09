@@ -29,7 +29,7 @@ final class SessionListener implements Listener {
         plugin.editor().forget(id);
         if (plugin.sessions().get(id) != null) {
             plugin.sessions().end(id);
-            p.getInventory().clear();
+            plugin.kits().clearKit(p);
         }
     }
 
@@ -40,7 +40,7 @@ final class SessionListener implements Listener {
         if (s == null) return;
         if (!p.getWorld().getName().equals(s.spawn.getWorld().getName())) {
             plugin.sessions().end(p.getUniqueId());
-            p.getInventory().clear();
+            plugin.kits().clearKit(p);
         }
     }
 
@@ -52,9 +52,7 @@ final class SessionListener implements Listener {
         plugin.sessions().end(id);
         clearOnRespawn.add(id);
         if (plugin.getConfig().getBoolean("clear-drops-on-death", true)) {
-            e.setKeepInventory(false);
-            e.getDrops().clear();
-            e.setKeepLevel(false);
+            e.getDrops().removeIf(plugin.kits()::isKit);
             e.setDroppedExp(0);
         }
     }
@@ -64,7 +62,7 @@ final class SessionListener implements Listener {
         Player p = e.getPlayer();
         if (!clearOnRespawn.remove(p.getUniqueId())) return;
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (p.isOnline() && plugin.sessions().get(p.getUniqueId()) == null) p.getInventory().clear();
-        }, 2L);
+            if (p.isOnline() && plugin.sessions().get(p.getUniqueId()) == null) plugin.kits().clearKit(p);
+        }, 5L);
     }
 }

@@ -77,6 +77,9 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
             Text.send(s, "&e/parena remove <id> &7- delete an arena");
             Text.send(s, "&e/parena list &7- show arenas and slots");
             Text.send(s, "&e/parena tp <id> [slot] &7- teleport to a spawn");
+            Text.send(s, "&e/parena paste <id> <schematic> &7- paste the arena here and link it for regeneration");
+            Text.send(s, "&e/parena link <id> <schematic> &7- link an arena you already pasted (stand where you pasted it)");
+            Text.send(s, "&e/parena regen <id> [slot] &7- restore a slot now (test)");
             Text.send(s, "&e/parena reload &7- reload config and arenas");
             return;
         }
@@ -101,6 +104,18 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
                 ar.spawns.add(SpawnPoint.of(p.getLocation()));
                 am.save();
                 Text.send(s, "&aAdded slot #" + ar.spawns.size() + " to &f" + ar.id);
+                SpawnPoint np = ar.spawns.get(ar.spawns.size() - 1);
+                double min = Double.MAX_VALUE;
+                for (int i = 0; i < ar.spawns.size() - 1; i++) {
+                    SpawnPoint o = ar.spawns.get(i);
+                    if (!o.world().equals(np.world())) continue;
+                    min = Math.min(min, Math.hypot(o.x() - np.x(), o.z() - np.z()));
+                }
+                int need = plugin.getConfig().getInt("regen.radius", 60) * 2;
+                if (min < need) {
+                    Text.send(s, "&eWarning: this slot is only " + (int) min + " blocks from another slot. Keep slots at least "
+                            + need + " blocks apart (regen.radius x 2) so restoring one slot never touches another player.");
+                }
             }
             case "remove" -> {
                 if (a.length < 2) { Text.send(s, "&cUsage: /parena remove <id>"); return; }
@@ -109,7 +124,8 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
             case "list" -> {
                 if (am.all().isEmpty()) { Text.send(s, "&7No arenas yet."); return; }
                 for (Arena ar : am.all()) {
-                    Text.send(s, "&e" + ar.id + " &7(" + ar.type + ") slots: &f" + ar.spawns.size() + " &7in use: &f" + ar.taken.size());
+                    Text.send(s, "&e" + ar.id + " &7(" + ar.type + ") slots: &f" + ar.spawns.size() + " &7in use: &f" + ar.taken.size()
+                            + " &7regen: " + (ar.canRegen() ? "&a" + ar.schem : "&cnot linked"));
                 }
             }
             case "tp" -> {
@@ -124,10 +140,40 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
                 if (l == null) { Text.send(s, "&cThat world is not loaded."); return; }
                 p.teleport(l);
             }
+            case "paste" -> {
+                if (!(s instanceof Player p)) { Text.send(s, "&cOnly players can use this."); return; }
+                if (plugin.regen() == null) { Text.send(s, "&cNeeds FastAsyncWorldEdit and regen.enabled: true."); return; }
+                if (a.length < 3) { Text.send(s, "&cUsage: /parena paste <id> <schematic>"); return; }
+                Arena ar = am.get(a[1]);
+                if (ar == null) { Text.send(s, "&cNo such arena. Create it first with /parena create."); return; }
+                plugin.regen().paste(p, ar, a[2]);
+            }
+            case "link" -> {
+                if (!(s instanceof Player p)) { Text.send(s, "&cOnly players can use this."); return; }
+                if (a.length < 3) { Text.send(s, "&cUsage: /parena link <id> <schematic>"); return; }
+                Arena ar = am.get(a[1]);
+                if (ar == null) { Text.send(s, "&cNo such arena."); return; }
+                Location l = p.getLocation();
+                am.setOrigin(ar, a[2], l.getWorld().getName(), l.getBlockX(), l.getBlockY(), l.getBlockZ());
+                Text.send(s, "&aLinked &f" + ar.id + " &ato &f" + a[2] + " &aat your position. This must be the exact block where you pasted it.");
+            }
+            case "regen" -> {
+                if (plugin.regen() == null) { Text.send(s, "&cNeeds FastAsyncWorldEdit and regen.enabled: true."); return; }
+                if (a.length < 2) { Text.send(s, "&cUsage: /parena regen <id> [slot]"); return; }
+                Arena ar = am.get(a[1]);
+                if (ar == null || ar.spawns.isEmpty()) { Text.send(s, "&cNo such arena or no slots."); return; }
+                if (!ar.canRegen()) { Text.send(s, "&cThis arena is not linked to a schematic. Use /parena paste or /parena link."); return; }
+                int slot = 1;
+                if (a.length > 2 && a[2].matches("\\d+")) slot = Integer.parseInt(a[2]);
+                if (slot < 1 || slot > ar.spawns.size()) { Text.send(s, "&cSlot must be 1-" + ar.spawns.size()); return; }
+                plugin.regen().start(ar, slot - 1);
+                Text.send(s, "&aRestoring slot " + slot + " of &f" + ar.id + "&a...");
+            }
             case "reload" -> {
                 plugin.reloadConfig();
                 am.load();
                 plugin.layouts().load();
+                if (plugin.regen() != null) plugin.regen().clearCache();
                 Text.send(s, "&aReloaded.");
             }
             default -> Text.send(s, "&cUnknown subcommand. Type /parena for help.");
@@ -145,7 +191,7 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
         }
         if (!name.equals("parena")) return out;
         if (args.length == 1) {
-            for (String x : new String[]{"create", "addspawn", "remove", "list", "tp", "reload"})
+            for (String x : new String[]{"create", "addspawn", "remove", "list", "tp", "paste", "link", "regen", "reload"})
                 if (x.startsWith(args[0].toLowerCase(Locale.ROOT))) out.add(x);
         } else if (args.length == 2 && args[0].equalsIgnoreCase("create")) {
             ConfigurationSection types = plugin.getConfig().getConfigurationSection("arena-types");

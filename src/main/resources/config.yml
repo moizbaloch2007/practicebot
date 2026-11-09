@@ -34,6 +34,21 @@ bot-cleanup:
   list-command: "pbadmin bot list --target {player}"
   despawn-command: "pbadmin bot despawn {id}"
 
+# Arena regeneration (needs FastAsyncWorldEdit).
+# After a fight the area around that player's slot is restored from the arena's
+# schematic, and leftover crystals, minecarts, TNT, items and arrows are removed.
+# Link an arena with /parena paste <id> <schematic> (or /parena link).
+# Keep slots at least radius x 2 blocks apart.
+regen:
+  enabled: true
+  radius: 60        # blocks around the slot, in every horizontal direction
+  below: 15         # blocks restored below the slot
+  above: 60         # blocks restored above the slot
+  delay-ticks: 20   # wait after the fight ends before restoring
+  schematic-folders:
+    - plugins/FastAsyncWorldEdit/schematics
+    - plugins/WorldEdit/schematics
+
 menus:
   hub-title: "&8&lPracticeCore"
   hub-size: 27

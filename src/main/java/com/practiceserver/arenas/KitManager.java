@@ -13,6 +13,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 
 /**
  * Gives the player gear. Item format: MATERIAL [amount] [enchant:level ...] [unbreakable]
@@ -22,9 +23,36 @@ import org.bukkit.inventory.meta.ItemMeta;
 final class KitManager {
 
     private final ArenasPlugin plugin;
+    private final NamespacedKey kitKey;
 
     KitManager(ArenasPlugin plugin) {
         this.plugin = plugin;
+        this.kitKey = new NamespacedKey(plugin, "kit");
+    }
+
+    /** Marks an item as part of an arena kit. */
+    private ItemStack tag(ItemStack it) {
+        ItemMeta m = it.getItemMeta();
+        if (m != null) {
+            m.getPersistentDataContainer().set(kitKey, PersistentDataType.BYTE, (byte) 1);
+            it.setItemMeta(m);
+        }
+        return it;
+    }
+
+    boolean isKit(ItemStack it) {
+        if (it == null || it.getType().isAir() || !it.hasItemMeta()) return false;
+        Byte b = it.getItemMeta().getPersistentDataContainer().get(kitKey, PersistentDataType.BYTE);
+        return b != null && b == 1;
+    }
+
+    /** Removes only the arena kit items. Other items (like the ItemJoin star) are left alone. */
+    void clearKit(Player p) {
+        PlayerInventory inv = p.getInventory();
+        ItemStack[] c = inv.getContents();
+        for (int i = 0; i < c.length; i++) {
+            if (isKit(c[i])) inv.setItem(i, null);
+        }
     }
 
     private static boolean isArmor(ItemStack it) {
@@ -66,21 +94,21 @@ final class KitManager {
 
         ItemStack[] layout = layoutFor(p, mode);
         for (int i = 0; i < 36; i++) {
-            if (layout[i] != null) inv.setItem(i, layout[i].clone());
+            if (layout[i] != null) inv.setItem(i, tag(layout[i].clone()));
         }
 
         for (ItemStack it : parseItems(mode)) {
             String n = it.getType().name();
-            if (n.endsWith("_HELMET")) inv.setHelmet(it);
-            else if (n.endsWith("_CHESTPLATE")) inv.setChestplate(it);
-            else if (n.endsWith("_LEGGINGS")) inv.setLeggings(it);
-            else if (n.endsWith("_BOOTS")) inv.setBoots(it);
+            if (n.endsWith("_HELMET")) inv.setHelmet(tag(it));
+            else if (n.endsWith("_CHESTPLATE")) inv.setChestplate(tag(it));
+            else if (n.endsWith("_LEGGINGS")) inv.setLeggings(tag(it));
+            else if (n.endsWith("_BOOTS")) inv.setBoots(tag(it));
         }
 
         String off = plugin.getConfig().getString("kits." + mode + ".offhand", "");
         if (off != null && !off.isBlank()) {
             ItemStack it = parse(off);
-            if (it != null) inv.setItemInOffHand(it);
+            if (it != null) inv.setItemInOffHand(tag(it));
         }
     }
 

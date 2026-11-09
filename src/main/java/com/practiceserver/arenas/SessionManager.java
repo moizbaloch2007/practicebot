@@ -56,19 +56,28 @@ final class SessionManager {
 
     /** Ends the session and frees the arena slot. */
     void end(UUID id) {
+        end(id, true);
+    }
+
+    private void end(UUID id, boolean regen) {
         Session s = sessions.remove(id);
         if (s != null && s.task != null) s.task.cancel();
-        plugin.arenas().release(id);
-        if (s != null && s.phase != Phase.PREP) plugin.cleaner().cleanup(s.playerName);
+        ArenaManager.Assignment as = plugin.arenas().release(id);
+        if (s != null && s.phase != Phase.PREP) {
+            plugin.cleaner().cleanup(s.playerName);
+            if (regen && as != null && plugin.regen() != null) {
+                plugin.regen().start(as.arena(), as.index());
+            }
+        }
     }
 
     void endAll() {
-        for (UUID id : new ArrayList<>(sessions.keySet())) end(id);
+        for (UUID id : new ArrayList<>(sessions.keySet())) end(id, false);
     }
 
     void leave(Player p) {
         end(p.getUniqueId());
-        p.getInventory().clear();
+        plugin.kits().clearKit(p);
         String c = plugin.getConfig().getString("lobby-command", "warp lobby {player}");
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), c.replace("{player}", p.getName()));
     }

@@ -1,9 +1,9 @@
 name: PracticeCore
-version: 1.1.0
+version: 1.2.0
 main: com.practiceserver.arenas.ArenasPlugin
 api-version: '1.21'
 description: Menus, arenas, difficulty, kit editor and PracticeBot control.
-softdepend: [PracticeBot]
+softdepend: [PracticeBot, FastAsyncWorldEdit, WorldEdit]
 commands:
   practicecore:
     description: Open the PracticeCore menu
