@@ -50,7 +50,16 @@ final class LobbyManager {
     }
 
     void setSpawn(Location l) {
-        yaml.set("lobby.spawn", SpawnPoint.of(l).serialize());
+        dataSet("lobby.spawn", SpawnPoint.of(l).serialize());
+    }
+
+    /** Values changed by commands (kept in data.yml so config.yml comments are never touched). */
+    int dataInt(String path, int def) {
+        return yaml.getInt(path, def);
+    }
+
+    void dataSet(String path, Object value) {
+        yaml.set(path, value);
         try {
             plugin.getDataFolder().mkdirs();
             yaml.save(file);

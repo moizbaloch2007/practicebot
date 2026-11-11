@@ -80,6 +80,12 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
             Text.send(s, "&e/parena setlobby &7- set the lobby spawn where you stand");
             Text.send(s, "&e/parena create <type> <id> &7- new arena of a type");
             Text.send(s, "&e/parena addspawn <id> &7- add your position as a player slot");
+            Text.send(s, "&e/parena slots <id> &7- list the slots of an arena");
+            Text.send(s, "&e/parena setspawn <id> <slot> &7- move a slot to where you stand");
+            Text.send(s, "&e/parena removespawn <id> <slot> &7- delete a slot");
+            Text.send(s, "&e/parena sync <id> &7- copy this arena's slots to its clones");
+            Text.send(s, "&e/parena interval [minutes] &7- show or change the reset time");
+            Text.send(s, "&e/parena status &7- arenas, free slots and time until reset");
             Text.send(s, "&e/parena remove <id> &7- delete an arena");
             Text.send(s, "&e/parena list &7- show arenas and slots");
             Text.send(s, "&e/parena tp <id> [slot] &7- teleport to a spawn");
@@ -92,6 +98,88 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
         }
         ArenaManager am = plugin.arenas();
         switch (a[0].toLowerCase(Locale.ROOT)) {
+            case "slots" -> {
+                if (a.length < 2) { Text.send(s, "&cUsage: /parena slots <id>"); return; }
+                Arena ar = am.get(a[1]);
+                if (ar == null) { Text.send(s, "&cNo such arena."); return; }
+                if (ar.spawns.isEmpty()) { Text.send(s, "&7No slots yet. Use /parena addspawn " + ar.id); return; }
+                for (int i = 0; i < ar.spawns.size(); i++) {
+                    SpawnPoint sp = ar.spawns.get(i);
+                    String state = ar.taken.containsKey(i) ? "&cin use" : (ar.regenerating.contains(i) ? "&eresetting" : "&afree");
+                    Text.send(s, "&e#" + (i + 1) + " &7" + (int) sp.x() + ", " + (int) sp.y() + ", " + (int) sp.z() + " " + state);
+                }
+            }
+            case "setspawn" -> {
+                if (!(s instanceof Player p)) { Text.send(s, "&cOnly players can use this."); return; }
+                if (a.length < 3 || !a[2].matches("\\d+")) { Text.send(s, "&cUsage: /parena setspawn <id> <slot>"); return; }
+                Arena ar = am.get(a[1]);
+                if (ar == null) { Text.send(s, "&cNo such arena."); return; }
+                int slot = Integer.parseInt(a[2]);
+                if (slot < 1 || slot > ar.spawns.size()) { Text.send(s, "&cSlot must be 1-" + ar.spawns.size()); return; }
+                if (!ar.taken.isEmpty() || !ar.regenerating.isEmpty()) { Text.send(s, "&cPlayers are in this arena or it is resetting. Try again in a moment."); return; }
+                ar.spawns.set(slot - 1, SpawnPoint.of(p.getLocation()));
+                am.save();
+                Text.send(s, "&aSlot " + slot + " of &f" + ar.id + " &amoved here. Run &e/parena sync " + ar.id + " &ato update its clones.");
+            }
+            case "removespawn" -> {
+                if (a.length < 3 || !a[2].matches("\\d+")) { Text.send(s, "&cUsage: /parena removespawn <id> <slot>"); return; }
+                Arena ar = am.get(a[1]);
+                if (ar == null) { Text.send(s, "&cNo such arena."); return; }
+                int slot = Integer.parseInt(a[2]);
+                if (slot < 1 || slot > ar.spawns.size()) { Text.send(s, "&cSlot must be 1-" + ar.spawns.size()); return; }
+                if (!ar.taken.isEmpty() || !ar.regenerating.isEmpty()) { Text.send(s, "&cPlayers are in this arena or it is resetting. Try again in a moment."); return; }
+                ar.spawns.remove(slot - 1);
+                am.save();
+                Text.send(s, "&aSlot " + slot + " removed from &f" + ar.id + "&a (" + ar.spawns.size() + " left, later slots moved up by one). Run &e/parena sync " + ar.id + " &ato update its clones.");
+            }
+            case "sync" -> {
+                if (a.length < 2) { Text.send(s, "&cUsage: /parena sync <id>  (copies this arena's slots to its clones)"); return; }
+                Arena src = am.get(a[1]);
+                if (src == null) { Text.send(s, "&cNo such arena."); return; }
+                if (!src.hasOrigin || src.schem.isEmpty()) { Text.send(s, "&cSave this arena first with /parena save."); return; }
+                int updated = 0;
+                int skipped = 0;
+                for (Arena t : am.all()) {
+                    if (t == src || !t.hasOrigin || !t.schem.equals(src.schem)) continue;
+                    if (!t.taken.isEmpty() || !t.regenerating.isEmpty()) { skipped++; continue; }
+                    int dx = t.ox - src.ox;
+                    int dy = t.oy - src.oy;
+                    int dz = t.oz - src.oz;
+                    t.spawns.clear();
+                    for (SpawnPoint sp : src.spawns) {
+                        t.spawns.add(new SpawnPoint(t.originWorld, sp.x() + dx, sp.y() + dy, sp.z() + dz, sp.yaw(), sp.pitch()));
+                    }
+                    updated++;
+                }
+                am.save();
+                Text.send(s, "&aUpdated the slots of " + updated + " clone(s)." + (skipped > 0 ? " &e" + skipped + " skipped because players are inside." : ""));
+            }
+            case "interval" -> {
+                if (plugin.regen() == null) { Text.send(s, "&cTimed reset needs FastAsyncWorldEdit and regen.enabled: true."); return; }
+                if (a.length < 2) {
+                    Text.send(s, "&7Arenas reset every &f" + plugin.regen().intervalMinutes() + " &7minutes. Change it with &e/parena interval <minutes>");
+                    return;
+                }
+                if (!a[1].matches("\\d+")) { Text.send(s, "&cUsage: /parena interval <minutes>"); return; }
+                int minutes = Integer.parseInt(a[1]);
+                if (minutes < 1 || minutes > 1440) { Text.send(s, "&cMinutes must be 1-1440."); return; }
+                plugin.lobby().dataSet("settings.interval-minutes", minutes);
+                plugin.regen().resetTimers();
+                Text.send(s, "&aArenas now reset every &f" + minutes + " &aminutes. The countdowns were restarted.");
+            }
+            case "status" -> {
+                if (am.all().isEmpty()) { Text.send(s, "&7No arenas yet."); return; }
+                for (Arena ar : am.all()) {
+                    int free = ar.locked ? 0 : Math.max(0, ar.spawns.size() - ar.taken.size() - ar.regenerating.size());
+                    String reset = "off";
+                    if (plugin.regen() != null && ar.canRegen()) {
+                        long secs = plugin.regen().secondsUntil(ar);
+                        if (secs >= 0) reset = (secs / 60) + ":" + String.format("%02d", secs % 60);
+                    }
+                    Text.send(s, "&e" + ar.id + " &7(" + ar.type + ") free &f" + free + "&7/&f" + ar.spawns.size()
+                            + " &7next reset &f" + reset + (ar.dirty ? " &7(used)" : ""));
+                }
+            }
             case "setlobby" -> {
                 if (!(s instanceof Player p)) { Text.send(s, "&cOnly players can use this."); return; }
                 plugin.lobby().setSpawn(p.getLocation());
@@ -215,7 +303,7 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
         }
         if (!name.equals("parena")) return out;
         if (args.length == 1) {
-            for (String x : new String[]{"setlobby", "create", "addspawn", "remove", "list", "tp", "save", "clone", "regen", "regenall", "reload"})
+            for (String x : new String[]{"setlobby", "create", "addspawn", "slots", "setspawn", "removespawn", "sync", "interval", "status", "remove", "list", "tp", "save", "clone", "regen", "regenall", "reload"})
                 if (x.startsWith(args[0].toLowerCase(Locale.ROOT))) out.add(x);
         } else if (args.length == 2 && args[0].equalsIgnoreCase("create")) {
             ConfigurationSection types = plugin.getConfig().getConfigurationSection("arena-types");

@@ -117,24 +117,32 @@ final class MenuManager implements Listener {
         plugin.sessions().beginPrep(p, mode, diff, type);
     }
 
-    /** Lore lines about an arena type: arena count, players and time until reset. */
+    /** Lore lines about an arena type: arenas, slots, free slots, per-arena numbers and time until reset. */
     List<String> arenaInfo(String type) {
         List<String> extra = new ArrayList<>();
         extra.add("");
         ArenaManager am = plugin.arenas();
-        int cap = am.capacity(type);
-        if (cap == 0) {
+        int total = am.capacity(type);
+        if (total == 0) {
             extra.add("&cNo arena built yet");
             return extra;
         }
-        int used = am.used(type);
+        int free = am.freeSlots(type);
         extra.add("&7Arenas: &f" + am.arenaCount(type));
-        extra.add("&7Players: &f" + used + "&7/&f" + cap);
+        extra.add("&7Free slots: &f" + free + "&7 of &f" + total);
+        List<Arena> list = new ArrayList<>();
+        for (Arena a : am.all()) if (a.type.equalsIgnoreCase(type)) list.add(a);
+        if (list.size() <= 8) {
+            for (Arena a : list) {
+                int slotsFree = a.locked ? 0 : Math.max(0, a.spawns.size() - a.taken.size() - a.regenerating.size());
+                extra.add("&8- &f" + a.id + "&7: &f" + slotsFree + "&7/&f" + a.spawns.size() + " &7free");
+            }
+        }
         if (plugin.regen() != null) {
             long secs = plugin.regen().secondsUntilReset(type);
             if (secs >= 0) extra.add("&7Next reset: &f" + (secs / 60) + ":" + String.format("%02d", secs % 60));
         }
-        extra.add(used >= cap ? "&cAll arenas are full" : "&eClick to play");
+        extra.add(free <= 0 ? "&cAll arenas are full" : "&eClick to play");
         return extra;
     }
 

@@ -102,7 +102,7 @@ final class DialogMenus {
             lore.addAll(plugin.menus().arenaInfo(key));
             int cap = plugin.arenas().capacity(key);
             String label = s.getString("name", key)
-                    + (cap == 0 ? " &c(not built)" : " &7(" + plugin.arenas().used(key) + "/" + cap + ")");
+                    + (cap == 0 ? " &c(not built)" : " &7(" + plugin.arenas().freeSlots(key) + " free slots)");
             buttons.add(button(label, lore, pl -> plugin.menus().typeClicked(pl, mode, diff, key)));
         }
         show(p, plugin.getConfig().getString("menus.type-title", "&lChoose Arena"), buttons, 2);

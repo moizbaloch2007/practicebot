@@ -367,8 +367,27 @@ final class RegenManager {
         return plugin.getConfig().getBoolean("auto-regen.enabled", false);
     }
 
+    /** Minutes between resets. /parena interval overrides the config value. */
+    int intervalMinutes() {
+        int def = plugin.getConfig().getInt("auto-regen.interval-minutes", 5);
+        return Math.max(1, plugin.lobby().dataInt("settings.interval-minutes", def));
+    }
+
     private long intervalMs() {
-        return Math.max(1L, plugin.getConfig().getLong("auto-regen.interval-minutes", 5L)) * 60_000L;
+        return intervalMinutes() * 60_000L;
+    }
+
+    /** Restart every arena's countdown (used after the interval changed). */
+    void resetTimers() {
+        nextReset.clear();
+    }
+
+    /** Seconds until this arena resets, or -1 if timed reset is off. */
+    long secondsUntil(Arena a) {
+        if (!autoOn()) return -1;
+        long now = System.currentTimeMillis();
+        long next = nextReset.getOrDefault(a.id, now + intervalMs());
+        return Math.max(0L, (next - now) / 1000L);
     }
 
     /** Seconds until the next reset of the soonest arena of this type, or -1 if timed reset is off. */
@@ -388,7 +407,7 @@ final class RegenManager {
     private void startAuto() {
         if (!autoOn()) return;
         Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 20L, 20L);
-        plugin.getLogger().info("Timed arena reset every " + (intervalMs() / 60_000L) + " minutes.");
+        plugin.getLogger().info("Timed arena reset every " + intervalMinutes() + " minutes.");
     }
 
     private void tick() {

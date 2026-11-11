@@ -147,6 +147,16 @@ final class ArenaManager {
         return n;
     }
 
+    /** Slots that can be taken right now (not in use, not being restored, arena not locked). */
+    int freeSlots(String type) {
+        int n = 0;
+        for (Arena a : arenas.values()) {
+            if (!a.type.equalsIgnoreCase(type) || a.locked) continue;
+            n += Math.max(0, a.spawns.size() - a.taken.size() - a.regenerating.size());
+        }
+        return n;
+    }
+
     int used(String type) {
         int n = 0;
         for (Arena a : arenas.values()) if (a.type.equalsIgnoreCase(type)) n += a.taken.size();

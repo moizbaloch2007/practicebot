@@ -1,0 +1,1827 @@
+# ==========================================================
+#  PracticeBot - Bot Template Configuration
+#
+#  Template command namespace:
+#    /pbadmin template create <template>
+#    /pbadmin template edit <template>
+#    /pbadmin template cancel
+#    /pbadmin template delete <template>
+#    /pbadmin template spawn <template> [target]
+#    /pbadmin template spawn <template> [target] <world> <x> <y> <z> <yaw> <pitch>
+#
+#  Section rules:
+#    NORMAL templates use: general + settings + combat + inventory
+#    CPVP templates use:   general + inventory + cpvp
+#    MACE templates use:   general + inventory + mace
+#    SPEAR_MACE templates use: general + inventory + spear-mace
+#    CART templates use:   general + inventory + cart
+#    UHC templates use:    general + inventory + uhc
+#    DUMMY templates use:  general + settings + inventory
+#
+#  General fields:
+#    name                    Internal readable name.
+#    display-name            NPC name shown above the bot.
+#    skin-name               Minecraft account skin name. Empty/AUTO = SHELDERA skin.
+#    bot-type                NORMAL, CPVP, MACE, SPEAR_MACE, CART, UHC, or DUMMY.
+#    allow-gui               Compatibility flag. Runtime template bots keep normal GUI closed.
+#    despawn-on-owner-world-change  Despawn on owner world change when this bot has an owner.
+#    target-binding          REQUIRED = target player needed, NONE = nearest player, BOT = nearest bot.
+#    death-mode              REMOVE = despawn after death, RESPAWN = respawn from this template.
+#    kill-mode               DESPAWN = despawn after killing target, RESPAWN = respawn, NONE = stay alive.
+#    respawn-delay-seconds   Delay before respawn when death-mode/kill-mode uses RESPAWN.
+#    warm-up-seconds         Delay before the bot starts fighting after spawn.
+#
+#  Settings fields for NORMAL/DUMMY:
+#    look-at-target          Turn head/body toward target.
+#    follow-target           Follow the selected target.
+#    random-walk             Wander naturally when idle.
+#    hold-shield             Visually hold shield when available.
+#    use-shield              Use shield defensively.
+#    resistance              Apply resistance behavior/effect where supported.
+#    frozen                  DUMMY only. Locks movement when true.
+#    shield-in-main-hand     Put shield in main hand instead of offhand.
+#    shield-reset.enabled                    Restore shield after durability break.
+#    shield-reset.delay-seconds              Delay before durability-broken shield returns.
+#    shield-reset.axe-stun-seconds           Time shield stays disabled after axe hit.
+#    shield-durability.unbreaking-3          Give shield Unbreaking III.
+#    shield-durability.unbreakable           Prevent durability break. Axe stun still works.
+#    pvp-enabled             NORMAL only. Enables melee PvP logic.
+#
+#  Combat fields for NORMAL:
+#    strafe                  Strafe while fighting.
+#    wtap                    Use W-tap knockback timing.
+#    stap                    Use S-tap spacing.
+#    crits                   Try critical hits.
+#    shield-breaker          Use axe/shield-break behavior when applicable.
+#    retreat                 Back off when low/unsafe.
+#    reach-mode              SHORT, NORMAL, EXTENDED, or ADVANCED.
+#    aggression              LOW, MEDIUM, or HIGH.
+#    crit-chance             25, 50, 75, or 100.
+#    crit-speed              SLOW, NORMAL, or FAST.
+#    gapple-enabled          Allow golden apple healing.
+#    gapple-health-hearts    Eat at or below this health, from 1.0 to 10.0 hearts.
+#    potion-mode             0 = off, 1 = Strength II, 2 = Strength II + Speed II, 3 = all + Fire Resistance.
+#
+#  Inventory fields for all template types:
+#    helmet/chestplate/leggings/boots-material  leather, copper, gold, chain, iron, diamond, netherite.
+#    helmet/chestplate/leggings/boots-enchant   protection, blast_protection, or none.
+#    offhand-type                               totem, shield, or none.
+#    totem-count                                Amount of totems to give when offhand uses totems.
+#    armor-durability.breakable                 Use normal Minecraft armor durability.
+#    armor-durability.unbreaking-3              Give armor Unbreaking III while still allowing it to break.
+#    main-hand.material                         Bukkit material name for custom weapon/item.
+#    main-hand.amount                           Stack amount.
+#    main-hand.unbreakable                      Makes the item unbreakable.
+#    main-hand.enchantments                     Enchantment keys and levels.
+#    trims.<piece>.pattern/material             Armor trim pattern/material. Empty = no trim.
+#
+#  CPVP fields for CPVP:
+#    enabled                                   Must be true for CPVP templates.
+#    skill-level                               EASY, MEDIUM, HARD, or PRO preset name.
+#    aggression-weight                         Higher = more aggressive crystal pressure.
+#    use-pearls                                Allow ender pearl movement/tactics.
+#    use-mace                                  Allow mace logic when available.
+#    use-golden-apples                         Allow golden apple healing.
+#    place-obsidian                            Allow obsidian base placement.
+#    break-blocks                              Allow block mining/breaching.
+#    strafing-enabled                          Allow CPvP strafe movement.
+#    anchoring-mode                            Allow respawn anchor combat.
+#    heal-threshold                            HP ratio where healing starts, 0.4 = 40%.
+#    low-hp-crystal-lethal-reserve             Extra low-health safety reserve against self-damage.
+#    pearl-cooldown-ms                         Minimum milliseconds between pearls.
+#    fov-degrees                               CPvP action FOV. Lower = more human, higher = more permissive.
+#    place-delay-min/max-ms                    Random crystal place delay range.
+#    break-delay-min/max-ms                    Random crystal break delay range.
+#    sword-delay-ms                            Delay between sword/mace hits when CPvP allows melee.
+#    reaction-hesitation-*                     Humanized hesitation chance and duration.
+#    crystal-miss-*                            Humanized crystal miss/pause chance and duration.
+#    non-urgent-pearl-restraint-chance-percent Chance to avoid non-urgent pearls.
+#
+#  MACE fields for MACE:
+#    enabled                          Must be true for Mace templates.
+#    skill-level                      0-3. Higher presets improve aim and confirmations.
+#    aggression                       0-3. Higher = more frequent attack commits.
+#    aim-success-chance-percent       Chance for clean mace aim confirmation.
+#    stun-slam-success-chance-percent Chance for axe disable into mace punish.
+#    breach-swap-success-chance-percent Chance for correct sword-to-Breach swap.
+#    pearl-wind-success-chance-percent Chance for successful Pearl + Wind air reset.
+#    use-ground-pop                   Allow Wind Charge takeoff from ground.
+#    use-pearls                       Allow Ender Pearl + Wind Charge air reset.
+#    use-elytra                       Allow temporary Elytra aerial mode.
+#    use-shield-defense               Allow main-hand shield timing.
+#    use-counter-slam                 Allow shield disable into stun slam.
+#    use-gapples                      Allow golden apple recovery.
+#    use-potions                      Allow Strength II and Speed II splash potions.
+#    use-axe-disable                  Allow axe shield disable.
+#    use-breach-swap                  Allow sword-to-Breach mace ground swap.
+#    use-wind-burst-chain             Allow Density/Wind Burst chain attempts.
+#    aerial-landing-chance-percent    Chance to naturally land instead of air reset.
+#    elytra-unbreaking-3              Give Elytra Unbreaking III.
+#
+#  SPEAR_MACE fields under spear-mace (Minecraft Java 1.21.11+):
+#    enabled                          Enable combat; defaults to true for this template type.
+#    skill-level                      0 = Easy, 1 = Medium, 2 = Hard, 3 = Expert.
+#    aggression                       0 = Defensive, 1 = Balanced, 2 = Aggressive, 3 = Relentless.
+#    humanization-percent             0-100 natural timing/movement variation.
+#    infinite-inventory               Replenish the managed kit; never overwrites API-owned inventory.
+#    techniques.<key>                 0 disables; 1-100 chance in an eligible situation.
+#      Keys: jab, charge, lunge, backstab, pearl-catch, diagonal-catch,
+#            stun-slam, d-tap, density-smash, breach, attribute-hop,
+#            wind-charge-jump, axe-disable, shield, defense, gapples,
+#            strength-potion, speed-potion.
+#    attribute-hop is config/API-only and experimental; keep 0 unless explicitly needed.
+#    shield uses the main hand for aerial defense; totems remain in the offhand.
+#    Omitted Spear-Mace fields inherit config.yml -> spear-mace.defaults.
+#    Native range, hunger, item availability and cooldowns still apply at 100%.
+#
+#  CART fields for CART:
+#    enabled                          Compatibility field; Cart templates always enable combat.
+#    skill-level, aggression          0-3 professional execution/pressure profiles.
+#    place/ignite-*-percent           Legacy motor quality controls.
+#    use-pre-cart/pre-rail/insta-cart Enable the main legal bow sequences.
+#    use-crossbow/pearl/block/ledge/chain-cart Enable advanced techniques.
+#    *-frequency-percent              0-100 chance per eligible technique window.
+#    defensive-awareness[-percent]    Detect and react to hostile setup sequences.
+#    infinite-inventory               Replenish legal kit resources when enabled.
+#    adaptive-mind-games              Adapt mix selection to observed target habits.
+#    humanization-percent             Natural correlated timing/movement variation.
+#
+#  UHC fields for UHC:
+#    enabled                          Compatibility field; UHC templates always normalize to true.
+#    skill-level                      0-3. Controls perception, reactions and aim motor quality.
+#    aggression                       0-3. Controls entry pressure and reset frequency.
+#    bow-accuracy-percent             0-100. Chance of a clean correlated ranged release.
+#    use-bow                          Allow limited bow shots after disengaging.
+#    use-crossbow                     Allow preloading and crossbow reset/utility setups.
+#    use-lava                         Allow cue-based S-hold, web-lava and re-lava plays.
+#    use-water                        Allow recovery, water dunk and fall clutch plays.
+#    use-webs                         Allow predicted landing, head-web and web-drain plays.
+#    use-gapples                      Allow pre-gap and safe disengage healing.
+#    use-axe-disable                  Allow axe entries and shield momentum breaks.
+#    use-shield-stun                  Double-click after a crouch axe disable.
+#    web-trap-frequency-percent       0-100. Frequency of eligible cobweb captures.
+#    web-lava-combo-frequency-percent 0-100. Frequency of Web + Lava trap conversions.
+#    full-box-frequency-percent       Compatibility field; forced to 0 (FullBox disabled).
+#    melee-accuracy-percent           0-100. Humanized chance to commit an eligible melee hit.
+#    ranged-frequency-percent         0-100. Frequency of valid Bow/Crossbow windows.
+#    adaptive-mind-games              Adapt tactics to observed target habits.
+#    use-shield-defense               Allow timed defensive shield use.
+#    infinite-inventory               Replenish consumed UHC kit resources when enabled.
+#    rage-enabled                     Allow rare ten-second all-in pressure windows.
+# ==========================================================
+
+templates:
+  spearmace:
+    name: spearmace
+    display-name: Spear-Mace
+    bot-type: SPEAR_MACE
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: REMOVE
+    kill-mode: DESPAWN
+    warm-up-seconds: 2
+    inventory:
+      offhand-type: totem
+      totem-count: 2
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: protection
+      boots-enchant: protection
+      trims:
+        helmet:
+          pattern: bolt
+          material: copper
+        chest:
+          pattern: bolt
+          material: copper
+        legs:
+          pattern: bolt
+          material: copper
+        boots:
+          pattern: bolt
+          material: copper
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+    spear-mace:
+      enabled: true
+      skill-level: 2
+      aggression: 2
+      humanization-percent: 80
+      infinite-inventory: false
+      techniques:
+        attribute-hop: 0
+        wind-charge-jump: 65
+        strength-potion: 100
+        speed-potion: 100
+  
+  arena_normal:
+    # General
+    name: Arena Normal
+    display-name: ArenaBot
+    bot-type: NORMAL
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 3
+    warm-up-seconds: 0
+    skin-name: ''
+    
+    # NORMAL behavior settings
+    settings:
+      look-at-target: true
+      follow-target: false
+      random-walk: false
+      hold-shield: false
+      use-shield: true
+      resistance: false
+      frozen: false
+      shield-in-main-hand: false
+      shield-reset:
+        enabled: true
+        delay-seconds: 5.0
+        axe-stun-seconds: 5.0
+      shield-durability:
+        unbreaking-3: false
+        unbreakable: false
+      pvp-enabled: true
+    
+    # NORMAL melee combat settings
+    combat:
+      strafe: true
+      wtap: false
+      stap: false
+      crits: true
+      shield-breaker: true
+      retreat: false
+      reach-mode: NORMAL
+      aggression: MEDIUM
+      crit-chance: 75
+      crit-speed: NORMAL
+      gapple-enabled: true
+      gapple-health-hearts: 4.5
+      potion-mode: 2
+    
+    # General equipment
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 64
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      main-hand:
+        material: NETHERITE_SWORD
+        amount: 1
+        unbreakable: true
+        enchantments:
+          sharpness: 5
+          knockback: 1
+      trims:
+        helmet:
+          pattern: ward
+          material: gold
+        chest:
+          pattern: ward
+          material: gold
+        legs:
+          pattern: ward
+          material: gold
+        boots:
+          pattern: ward
+          material: gold
+  
+  arena_cpvp:
+    # General
+    name: Arena Crystal
+    display-name: CrystalBot
+    bot-type: CPVP
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 5
+    warm-up-seconds: 0
+    skin-name: ''
+    
+    # CPVP combat extras
+    combat:
+      shield-breaker: true
+    
+    # General equipment. CPVP behavior/combat is controlled by the cpvp section below.
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: blast_protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 64
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      trims:
+        helmet:
+          pattern: flow
+          material: redstone
+        chest:
+          pattern: flow
+          material: redstone
+        legs:
+          pattern: flow
+          material: redstone
+        boots:
+          pattern: flow
+          material: redstone
+    
+    # CPVP-only settings
+    cpvp:
+      enabled: true
+      skill-level: MEDIUM
+      aggression-weight: 1.3
+      use-pearls: true
+      use-mace: true
+      use-golden-apples: true
+      place-obsidian: true
+      break-blocks: false
+      strafing-enabled: true
+      anchoring-mode: false
+      heal-threshold: 0.4
+      low-hp-crystal-lethal-reserve: 0.05
+      pearl-cooldown-ms: 1600
+      fov-degrees: 120.0
+      place-delay-min-ms: 120
+      place-delay-max-ms: 190
+      break-delay-min-ms: 80
+      break-delay-max-ms: 135
+      sword-delay-ms: 600
+      reaction-hesitation-chance-percent: 14
+      reaction-hesitation-min-ms: 70
+      reaction-hesitation-max-ms: 160
+      crystal-miss-chance-percent: 7
+      crystal-miss-min-ms: 90
+      crystal-miss-max-ms: 210
+      non-urgent-pearl-restraint-chance-percent: 18
+  
+  arena_mace:
+    # General
+    name: Arena Mace
+    display-name: MaceBot
+    bot-type: MACE
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 5
+    warm-up-seconds: 0
+    skin-name: ''
+    
+    # General equipment. Mace combat is controlled by the mace section below.
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 64
+      armor-durability:
+        breakable: true
+        unbreaking-3: false
+      trims:
+        helmet:
+          pattern: flow
+          material: quartz
+        chest:
+          pattern: flow
+          material: quartz
+        legs:
+          pattern: flow
+          material: quartz
+        boots:
+          pattern: flow
+          material: quartz
+    
+    # MACE-only settings
+    mace:
+      enabled: true
+      skill-level: 2
+      aggression: 2
+      aim-success-chance-percent: 94
+      stun-slam-success-chance-percent: 88
+      breach-swap-success-chance-percent: 94
+      pearl-wind-success-chance-percent: 95
+      use-ground-pop: true
+      use-pearls: true
+      use-elytra: true
+      use-shield-defense: true
+      use-counter-slam: true
+      use-gapples: true
+      use-potions: true
+      use-axe-disable: true
+      use-breach-swap: true
+      use-wind-burst-chain: false
+      aerial-landing-chance-percent: 15
+      elytra-unbreaking-3: false
+  
+  arena_cart:
+    # General
+    name: Arena Cart
+    display-name: CartBot
+    bot-type: CART
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 5
+    warm-up-seconds: 0
+    skin-name: ''
+    
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: blast_protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 2
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      trims:
+        helmet:
+          pattern: flow
+          material: redstone
+        chest:
+          pattern: flow
+          material: redstone
+        legs:
+          pattern: flow
+          material: redstone
+        boots:
+          pattern: flow
+          material: redstone
+    
+    cart:
+      enabled: true
+      skill-level: 3
+      aggression: 2
+      place-success-chance-percent: 98
+      ignite-timing-success-chance-percent: 97
+      use-chain-cart: true
+      use-pearls: true
+      use-gapples: true
+      use-melee-pressure: true
+      use-obsidian-platform: true
+      defensive-awareness: true
+      use-pre-cart: true
+      use-pre-rail: true
+      use-insta-cart: true
+      use-crossbow: true
+      use-pearl-cart: true
+      use-block-cart: true
+      use-ledge-cart: true
+      pre-cart-frequency-percent: 55
+      pre-rail-frequency-percent: 62
+      insta-cart-frequency-percent: 82
+      crossbow-frequency-percent: 45
+      pearl-cart-frequency-percent: 30
+      block-cart-frequency-percent: 45
+      ledge-cart-frequency-percent: 35
+      chain-cart-frequency-percent: 40
+      defensive-awareness-percent: 94
+      infinite-inventory: true
+      adaptive-mind-games: true
+      humanization-percent: 80
+  
+  arena_uhc:
+    # General
+    name: Arena UHC
+    display-name: UHCBot
+    bot-type: UHC
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 5
+    warm-up-seconds: 0
+    skin-name: ''
+    
+    # Default modern-UHC equipment. A spawned bot can be customized through
+    # its Bot Inventory GUI; these values also support API/editor round-trips.
+    inventory:
+      helmet-material: diamond
+      chestplate-material: diamond
+      leggings-material: diamond
+      boots-material: diamond
+      helmet-enchant: protection:3
+      chestplate-enchant: protection:3
+      leggings-enchant: protection:3
+      boots-enchant: protection:3
+      offhand-type: shield
+      totem-count: 0
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      main-hand:
+        material: DIAMOND_SWORD
+        amount: 1
+        unbreakable: true
+        enchantments:
+          sharpness: 4
+      trims:
+        helmet:
+          pattern: ''
+          material: ''
+        chest:
+          pattern: ''
+          material: ''
+        legs:
+          pattern: ''
+          material: ''
+        boots:
+          pattern: ''
+          material: ''
+    
+    # UHC-only settings
+    uhc:
+      enabled: true
+      skill-level: 3
+      aggression: 2
+      bow-accuracy-percent: 95
+      use-bow: true
+      use-crossbow: true
+      use-lava: true
+      use-water: true
+      use-webs: true
+      use-gapples: true
+      use-axe-disable: true
+      use-shield-stun: true
+      web-trap-frequency-percent: 85
+      web-lava-combo-frequency-percent: 90
+      full-box-frequency-percent: 0
+      melee-accuracy-percent: 94
+      ranged-frequency-percent: 60
+      adaptive-mind-games: true
+      use-shield-defense: true
+      infinite-inventory: true
+      rage-enabled: true
+  
+  arena_dummy:
+    # General
+    name: Arena Dummy
+    display-name: DummyBot
+    bot-type: DUMMY
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: NONE
+    death-mode: RESPAWN
+    kill-mode: NONE
+    respawn-delay-seconds: 3
+    warm-up-seconds: 0
+    skin-name: ''
+    
+    # DUMMY behavior settings
+    settings:
+      look-at-target: true
+      follow-target: false
+      random-walk: false
+      hold-shield: false
+      use-shield: false
+      resistance: true
+      frozen: true
+      shield-in-main-hand: false
+      shield-reset:
+        enabled: true
+        delay-seconds: 5.0
+        axe-stun-seconds: 5.0
+      shield-durability:
+        unbreaking-3: false
+        unbreakable: false
+    
+    # General equipment
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 64
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      trims:
+        helmet:
+          pattern: ''
+          material: ''
+        chest:
+          pattern: ''
+          material: ''
+        legs:
+          pattern: ''
+          material: ''
+        boots:
+          pattern: ''
+          material: ''
+
+  # ============================================================
+  #  PracticeCore difficulty templates (Easy / Medium / Hard)
+  #  pa_<mode>_<easy|medium|hard> for normal, cpvp, mace,
+  #  spearmace, cart and uhc. Generated from the templates above:
+  #  only skill, aggression and a few accuracy settings differ.
+  #  PracticeCore picks the template that matches the menu choice.
+  # ============================================================
+
+  pa_normal_easy:
+    name: Normal Easy
+    display-name: '&aEasy Normal Bot'
+    bot-type: NORMAL
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 3
+    warm-up-seconds: 0
+    skin-name: ''
+    settings:
+      look-at-target: true
+      follow-target: false
+      random-walk: false
+      hold-shield: false
+      use-shield: true
+      resistance: false
+      frozen: false
+      shield-in-main-hand: false
+      shield-reset:
+        enabled: true
+        delay-seconds: 5.0
+        axe-stun-seconds: 5.0
+      shield-durability:
+        unbreaking-3: false
+        unbreakable: false
+      pvp-enabled: true
+    combat:
+      strafe: false
+      wtap: false
+      stap: false
+      crits: false
+      shield-breaker: false
+      retreat: false
+      reach-mode: NORMAL
+      aggression: LOW
+      crit-chance: 25
+      crit-speed: SLOW
+      gapple-enabled: false
+      gapple-health-hearts: 4.5
+      potion-mode: 0
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 64
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      main-hand:
+        material: NETHERITE_SWORD
+        amount: 1
+        unbreakable: true
+        enchantments:
+          sharpness: 5
+          knockback: 1
+      trims:
+        helmet:
+          pattern: ward
+          material: gold
+        chest:
+          pattern: ward
+          material: gold
+        legs:
+          pattern: ward
+          material: gold
+        boots:
+          pattern: ward
+          material: gold
+  pa_normal_medium:
+    name: Normal Medium
+    display-name: '&eMedium Normal Bot'
+    bot-type: NORMAL
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 3
+    warm-up-seconds: 0
+    skin-name: ''
+    settings:
+      look-at-target: true
+      follow-target: false
+      random-walk: false
+      hold-shield: false
+      use-shield: true
+      resistance: false
+      frozen: false
+      shield-in-main-hand: false
+      shield-reset:
+        enabled: true
+        delay-seconds: 5.0
+        axe-stun-seconds: 5.0
+      shield-durability:
+        unbreaking-3: false
+        unbreakable: false
+      pvp-enabled: true
+    combat:
+      strafe: true
+      wtap: true
+      stap: false
+      crits: true
+      shield-breaker: true
+      retreat: false
+      reach-mode: NORMAL
+      aggression: MEDIUM
+      crit-chance: 75
+      crit-speed: NORMAL
+      gapple-enabled: true
+      gapple-health-hearts: 4.5
+      potion-mode: 1
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 64
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      main-hand:
+        material: NETHERITE_SWORD
+        amount: 1
+        unbreakable: true
+        enchantments:
+          sharpness: 5
+          knockback: 1
+      trims:
+        helmet:
+          pattern: ward
+          material: gold
+        chest:
+          pattern: ward
+          material: gold
+        legs:
+          pattern: ward
+          material: gold
+        boots:
+          pattern: ward
+          material: gold
+  pa_normal_hard:
+    name: Normal Hard
+    display-name: '&cHard Normal Bot'
+    bot-type: NORMAL
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 3
+    warm-up-seconds: 0
+    skin-name: ''
+    settings:
+      look-at-target: true
+      follow-target: false
+      random-walk: false
+      hold-shield: false
+      use-shield: true
+      resistance: false
+      frozen: false
+      shield-in-main-hand: false
+      shield-reset:
+        enabled: true
+        delay-seconds: 5.0
+        axe-stun-seconds: 5.0
+      shield-durability:
+        unbreaking-3: false
+        unbreakable: false
+      pvp-enabled: true
+    combat:
+      strafe: true
+      wtap: true
+      stap: true
+      crits: true
+      shield-breaker: true
+      retreat: true
+      reach-mode: NORMAL
+      aggression: HIGH
+      crit-chance: 100
+      crit-speed: FAST
+      gapple-enabled: true
+      gapple-health-hearts: 4.5
+      potion-mode: 3
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 64
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      main-hand:
+        material: NETHERITE_SWORD
+        amount: 1
+        unbreakable: true
+        enchantments:
+          sharpness: 5
+          knockback: 1
+      trims:
+        helmet:
+          pattern: ward
+          material: gold
+        chest:
+          pattern: ward
+          material: gold
+        legs:
+          pattern: ward
+          material: gold
+        boots:
+          pattern: ward
+          material: gold
+  pa_cpvp_easy:
+    name: Cpvp Easy
+    display-name: '&aEasy Cpvp Bot'
+    bot-type: CPVP
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 5
+    warm-up-seconds: 0
+    skin-name: ''
+    combat:
+      shield-breaker: true
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: blast_protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 64
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      trims:
+        helmet:
+          pattern: flow
+          material: redstone
+        chest:
+          pattern: flow
+          material: redstone
+        legs:
+          pattern: flow
+          material: redstone
+        boots:
+          pattern: flow
+          material: redstone
+    cpvp:
+      enabled: true
+      skill-level: EASY
+      aggression-weight: 0.8
+      use-pearls: false
+      use-mace: true
+      use-golden-apples: true
+      place-obsidian: true
+      break-blocks: false
+      strafing-enabled: false
+      anchoring-mode: false
+      heal-threshold: 0.4
+      low-hp-crystal-lethal-reserve: 0.05
+      pearl-cooldown-ms: 1600
+      fov-degrees: 120.0
+      place-delay-min-ms: 260
+      place-delay-max-ms: 360
+      break-delay-min-ms: 180
+      break-delay-max-ms: 260
+      sword-delay-ms: 600
+      reaction-hesitation-chance-percent: 32
+      reaction-hesitation-min-ms: 70
+      reaction-hesitation-max-ms: 160
+      crystal-miss-chance-percent: 22
+      crystal-miss-min-ms: 90
+      crystal-miss-max-ms: 210
+      non-urgent-pearl-restraint-chance-percent: 18
+  pa_cpvp_medium:
+    name: Cpvp Medium
+    display-name: '&eMedium Cpvp Bot'
+    bot-type: CPVP
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 5
+    warm-up-seconds: 0
+    skin-name: ''
+    combat:
+      shield-breaker: true
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: blast_protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 64
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      trims:
+        helmet:
+          pattern: flow
+          material: redstone
+        chest:
+          pattern: flow
+          material: redstone
+        legs:
+          pattern: flow
+          material: redstone
+        boots:
+          pattern: flow
+          material: redstone
+    cpvp:
+      enabled: true
+      skill-level: MEDIUM
+      aggression-weight: 1.3
+      use-pearls: true
+      use-mace: true
+      use-golden-apples: true
+      place-obsidian: true
+      break-blocks: false
+      strafing-enabled: true
+      anchoring-mode: false
+      heal-threshold: 0.4
+      low-hp-crystal-lethal-reserve: 0.05
+      pearl-cooldown-ms: 1600
+      fov-degrees: 120.0
+      place-delay-min-ms: 120
+      place-delay-max-ms: 190
+      break-delay-min-ms: 80
+      break-delay-max-ms: 135
+      sword-delay-ms: 600
+      reaction-hesitation-chance-percent: 14
+      reaction-hesitation-min-ms: 70
+      reaction-hesitation-max-ms: 160
+      crystal-miss-chance-percent: 7
+      crystal-miss-min-ms: 90
+      crystal-miss-max-ms: 210
+      non-urgent-pearl-restraint-chance-percent: 18
+  pa_cpvp_hard:
+    name: Cpvp Hard
+    display-name: '&cHard Cpvp Bot'
+    bot-type: CPVP
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 5
+    warm-up-seconds: 0
+    skin-name: ''
+    combat:
+      shield-breaker: true
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: blast_protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 64
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      trims:
+        helmet:
+          pattern: flow
+          material: redstone
+        chest:
+          pattern: flow
+          material: redstone
+        legs:
+          pattern: flow
+          material: redstone
+        boots:
+          pattern: flow
+          material: redstone
+    cpvp:
+      enabled: true
+      skill-level: PRO
+      aggression-weight: 1.6
+      use-pearls: true
+      use-mace: true
+      use-golden-apples: true
+      place-obsidian: true
+      break-blocks: false
+      strafing-enabled: true
+      anchoring-mode: true
+      heal-threshold: 0.4
+      low-hp-crystal-lethal-reserve: 0.05
+      pearl-cooldown-ms: 1600
+      fov-degrees: 120.0
+      place-delay-min-ms: 90
+      place-delay-max-ms: 140
+      break-delay-min-ms: 60
+      break-delay-max-ms: 95
+      sword-delay-ms: 600
+      reaction-hesitation-chance-percent: 5
+      reaction-hesitation-min-ms: 70
+      reaction-hesitation-max-ms: 160
+      crystal-miss-chance-percent: 2
+      crystal-miss-min-ms: 90
+      crystal-miss-max-ms: 210
+      non-urgent-pearl-restraint-chance-percent: 18
+  pa_mace_easy:
+    name: Mace Easy
+    display-name: '&aEasy Mace Bot'
+    bot-type: MACE
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 5
+    warm-up-seconds: 0
+    skin-name: ''
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 64
+      armor-durability:
+        breakable: true
+        unbreaking-3: false
+      trims:
+        helmet:
+          pattern: flow
+          material: quartz
+        chest:
+          pattern: flow
+          material: quartz
+        legs:
+          pattern: flow
+          material: quartz
+        boots:
+          pattern: flow
+          material: quartz
+    mace:
+      enabled: true
+      skill-level: 0
+      aggression: 1
+      aim-success-chance-percent: 70
+      stun-slam-success-chance-percent: 60
+      breach-swap-success-chance-percent: 70
+      pearl-wind-success-chance-percent: 70
+      use-ground-pop: true
+      use-pearls: true
+      use-elytra: false
+      use-shield-defense: true
+      use-counter-slam: false
+      use-gapples: true
+      use-potions: true
+      use-axe-disable: true
+      use-breach-swap: false
+      use-wind-burst-chain: false
+      aerial-landing-chance-percent: 15
+      elytra-unbreaking-3: false
+  pa_mace_medium:
+    name: Mace Medium
+    display-name: '&eMedium Mace Bot'
+    bot-type: MACE
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 5
+    warm-up-seconds: 0
+    skin-name: ''
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 64
+      armor-durability:
+        breakable: true
+        unbreaking-3: false
+      trims:
+        helmet:
+          pattern: flow
+          material: quartz
+        chest:
+          pattern: flow
+          material: quartz
+        legs:
+          pattern: flow
+          material: quartz
+        boots:
+          pattern: flow
+          material: quartz
+    mace:
+      enabled: true
+      skill-level: 2
+      aggression: 2
+      aim-success-chance-percent: 94
+      stun-slam-success-chance-percent: 88
+      breach-swap-success-chance-percent: 94
+      pearl-wind-success-chance-percent: 95
+      use-ground-pop: true
+      use-pearls: true
+      use-elytra: true
+      use-shield-defense: true
+      use-counter-slam: true
+      use-gapples: true
+      use-potions: true
+      use-axe-disable: true
+      use-breach-swap: true
+      use-wind-burst-chain: false
+      aerial-landing-chance-percent: 15
+      elytra-unbreaking-3: false
+  pa_mace_hard:
+    name: Mace Hard
+    display-name: '&cHard Mace Bot'
+    bot-type: MACE
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 5
+    warm-up-seconds: 0
+    skin-name: ''
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 64
+      armor-durability:
+        breakable: true
+        unbreaking-3: false
+      trims:
+        helmet:
+          pattern: flow
+          material: quartz
+        chest:
+          pattern: flow
+          material: quartz
+        legs:
+          pattern: flow
+          material: quartz
+        boots:
+          pattern: flow
+          material: quartz
+    mace:
+      enabled: true
+      skill-level: 3
+      aggression: 3
+      aim-success-chance-percent: 99
+      stun-slam-success-chance-percent: 98
+      breach-swap-success-chance-percent: 99
+      pearl-wind-success-chance-percent: 99
+      use-ground-pop: true
+      use-pearls: true
+      use-elytra: true
+      use-shield-defense: true
+      use-counter-slam: true
+      use-gapples: true
+      use-potions: true
+      use-axe-disable: true
+      use-breach-swap: true
+      use-wind-burst-chain: false
+      aerial-landing-chance-percent: 15
+      elytra-unbreaking-3: false
+  pa_spearmace_easy:
+    name: Spearmace Easy
+    display-name: '&aEasy Spearmace Bot'
+    bot-type: SPEAR_MACE
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    warm-up-seconds: 0
+    inventory:
+      offhand-type: totem
+      totem-count: 2
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: protection
+      boots-enchant: protection
+      trims:
+        helmet:
+          pattern: bolt
+          material: copper
+        chest:
+          pattern: bolt
+          material: copper
+        legs:
+          pattern: bolt
+          material: copper
+        boots:
+          pattern: bolt
+          material: copper
+    spear-mace:
+      enabled: true
+      skill-level: 0
+      aggression: 1
+      humanization-percent: 95
+      infinite-inventory: false
+      techniques:
+        attribute-hop: 0
+        wind-charge-jump: 25
+        strength-potion: 100
+        speed-potion: 100
+    respawn-delay-seconds: 3
+  pa_spearmace_medium:
+    name: Spearmace Medium
+    display-name: '&eMedium Spearmace Bot'
+    bot-type: SPEAR_MACE
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    warm-up-seconds: 0
+    inventory:
+      offhand-type: totem
+      totem-count: 2
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: protection
+      boots-enchant: protection
+      trims:
+        helmet:
+          pattern: bolt
+          material: copper
+        chest:
+          pattern: bolt
+          material: copper
+        legs:
+          pattern: bolt
+          material: copper
+        boots:
+          pattern: bolt
+          material: copper
+    spear-mace:
+      enabled: true
+      skill-level: 2
+      aggression: 2
+      humanization-percent: 80
+      infinite-inventory: false
+      techniques:
+        attribute-hop: 0
+        wind-charge-jump: 65
+        strength-potion: 100
+        speed-potion: 100
+    respawn-delay-seconds: 3
+  pa_spearmace_hard:
+    name: Spearmace Hard
+    display-name: '&cHard Spearmace Bot'
+    bot-type: SPEAR_MACE
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    warm-up-seconds: 0
+    inventory:
+      offhand-type: totem
+      totem-count: 2
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: protection
+      boots-enchant: protection
+      trims:
+        helmet:
+          pattern: bolt
+          material: copper
+        chest:
+          pattern: bolt
+          material: copper
+        legs:
+          pattern: bolt
+          material: copper
+        boots:
+          pattern: bolt
+          material: copper
+    spear-mace:
+      enabled: true
+      skill-level: 3
+      aggression: 3
+      humanization-percent: 60
+      infinite-inventory: false
+      techniques:
+        attribute-hop: 0
+        wind-charge-jump: 90
+        strength-potion: 100
+        speed-potion: 100
+    respawn-delay-seconds: 3
+  pa_cart_easy:
+    name: Cart Easy
+    display-name: '&aEasy Cart Bot'
+    bot-type: CART
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 5
+    warm-up-seconds: 0
+    skin-name: ''
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: blast_protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 2
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      trims:
+        helmet:
+          pattern: flow
+          material: redstone
+        chest:
+          pattern: flow
+          material: redstone
+        legs:
+          pattern: flow
+          material: redstone
+        boots:
+          pattern: flow
+          material: redstone
+    cart:
+      enabled: true
+      skill-level: 0
+      aggression: 1
+      place-success-chance-percent: 70
+      ignite-timing-success-chance-percent: 65
+      use-chain-cart: false
+      use-pearls: false
+      use-gapples: true
+      use-melee-pressure: true
+      use-obsidian-platform: true
+      defensive-awareness: false
+      use-pre-cart: true
+      use-pre-rail: true
+      use-insta-cart: false
+      use-crossbow: false
+      use-pearl-cart: false
+      use-block-cart: true
+      use-ledge-cart: true
+      pre-cart-frequency-percent: 35
+      pre-rail-frequency-percent: 62
+      insta-cart-frequency-percent: 0
+      crossbow-frequency-percent: 45
+      pearl-cart-frequency-percent: 30
+      block-cart-frequency-percent: 45
+      ledge-cart-frequency-percent: 35
+      chain-cart-frequency-percent: 40
+      defensive-awareness-percent: 94
+      infinite-inventory: true
+      adaptive-mind-games: true
+      humanization-percent: 95
+  pa_cart_medium:
+    name: Cart Medium
+    display-name: '&eMedium Cart Bot'
+    bot-type: CART
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 5
+    warm-up-seconds: 0
+    skin-name: ''
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: blast_protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 2
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      trims:
+        helmet:
+          pattern: flow
+          material: redstone
+        chest:
+          pattern: flow
+          material: redstone
+        legs:
+          pattern: flow
+          material: redstone
+        boots:
+          pattern: flow
+          material: redstone
+    cart:
+      enabled: true
+      skill-level: 2
+      aggression: 2
+      place-success-chance-percent: 98
+      ignite-timing-success-chance-percent: 97
+      use-chain-cart: false
+      use-pearls: true
+      use-gapples: true
+      use-melee-pressure: true
+      use-obsidian-platform: true
+      defensive-awareness: true
+      use-pre-cart: true
+      use-pre-rail: true
+      use-insta-cart: true
+      use-crossbow: true
+      use-pearl-cart: false
+      use-block-cart: true
+      use-ledge-cart: true
+      pre-cart-frequency-percent: 55
+      pre-rail-frequency-percent: 62
+      insta-cart-frequency-percent: 82
+      crossbow-frequency-percent: 45
+      pearl-cart-frequency-percent: 30
+      block-cart-frequency-percent: 45
+      ledge-cart-frequency-percent: 35
+      chain-cart-frequency-percent: 40
+      defensive-awareness-percent: 94
+      infinite-inventory: true
+      adaptive-mind-games: true
+      humanization-percent: 80
+  pa_cart_hard:
+    name: Cart Hard
+    display-name: '&cHard Cart Bot'
+    bot-type: CART
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 5
+    warm-up-seconds: 0
+    skin-name: ''
+    inventory:
+      helmet-material: netherite
+      chestplate-material: netherite
+      leggings-material: netherite
+      boots-material: netherite
+      helmet-enchant: protection
+      chestplate-enchant: protection
+      leggings-enchant: blast_protection
+      boots-enchant: protection
+      offhand-type: totem
+      totem-count: 2
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      trims:
+        helmet:
+          pattern: flow
+          material: redstone
+        chest:
+          pattern: flow
+          material: redstone
+        legs:
+          pattern: flow
+          material: redstone
+        boots:
+          pattern: flow
+          material: redstone
+    cart:
+      enabled: true
+      skill-level: 3
+      aggression: 3
+      place-success-chance-percent: 99
+      ignite-timing-success-chance-percent: 99
+      use-chain-cart: true
+      use-pearls: true
+      use-gapples: true
+      use-melee-pressure: true
+      use-obsidian-platform: true
+      defensive-awareness: true
+      use-pre-cart: true
+      use-pre-rail: true
+      use-insta-cart: true
+      use-crossbow: true
+      use-pearl-cart: true
+      use-block-cart: true
+      use-ledge-cart: true
+      pre-cart-frequency-percent: 75
+      pre-rail-frequency-percent: 62
+      insta-cart-frequency-percent: 95
+      crossbow-frequency-percent: 45
+      pearl-cart-frequency-percent: 30
+      block-cart-frequency-percent: 45
+      ledge-cart-frequency-percent: 35
+      chain-cart-frequency-percent: 40
+      defensive-awareness-percent: 94
+      infinite-inventory: true
+      adaptive-mind-games: true
+      humanization-percent: 60
+  pa_uhc_easy:
+    name: Uhc Easy
+    display-name: '&aEasy Uhc Bot'
+    bot-type: UHC
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 5
+    warm-up-seconds: 0
+    skin-name: ''
+    inventory:
+      helmet-material: diamond
+      chestplate-material: diamond
+      leggings-material: diamond
+      boots-material: diamond
+      helmet-enchant: protection:3
+      chestplate-enchant: protection:3
+      leggings-enchant: protection:3
+      boots-enchant: protection:3
+      offhand-type: shield
+      totem-count: 0
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      main-hand:
+        material: DIAMOND_SWORD
+        amount: 1
+        unbreakable: true
+        enchantments:
+          sharpness: 4
+      trims:
+        helmet:
+          pattern: ''
+          material: ''
+        chest:
+          pattern: ''
+          material: ''
+        legs:
+          pattern: ''
+          material: ''
+        boots:
+          pattern: ''
+          material: ''
+    uhc:
+      enabled: true
+      skill-level: 0
+      aggression: 1
+      bow-accuracy-percent: 55
+      use-bow: true
+      use-crossbow: true
+      use-lava: false
+      use-water: true
+      use-webs: false
+      use-gapples: true
+      use-axe-disable: false
+      use-shield-stun: false
+      web-trap-frequency-percent: 0
+      web-lava-combo-frequency-percent: 90
+      full-box-frequency-percent: 0
+      melee-accuracy-percent: 60
+      ranged-frequency-percent: 25
+      adaptive-mind-games: true
+      use-shield-defense: true
+      infinite-inventory: true
+      rage-enabled: false
+  pa_uhc_medium:
+    name: Uhc Medium
+    display-name: '&eMedium Uhc Bot'
+    bot-type: UHC
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 5
+    warm-up-seconds: 0
+    skin-name: ''
+    inventory:
+      helmet-material: diamond
+      chestplate-material: diamond
+      leggings-material: diamond
+      boots-material: diamond
+      helmet-enchant: protection:3
+      chestplate-enchant: protection:3
+      leggings-enchant: protection:3
+      boots-enchant: protection:3
+      offhand-type: shield
+      totem-count: 0
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      main-hand:
+        material: DIAMOND_SWORD
+        amount: 1
+        unbreakable: true
+        enchantments:
+          sharpness: 4
+      trims:
+        helmet:
+          pattern: ''
+          material: ''
+        chest:
+          pattern: ''
+          material: ''
+        legs:
+          pattern: ''
+          material: ''
+        boots:
+          pattern: ''
+          material: ''
+    uhc:
+      enabled: true
+      skill-level: 2
+      aggression: 2
+      bow-accuracy-percent: 95
+      use-bow: true
+      use-crossbow: true
+      use-lava: true
+      use-water: true
+      use-webs: true
+      use-gapples: true
+      use-axe-disable: true
+      use-shield-stun: true
+      web-trap-frequency-percent: 85
+      web-lava-combo-frequency-percent: 90
+      full-box-frequency-percent: 0
+      melee-accuracy-percent: 94
+      ranged-frequency-percent: 60
+      adaptive-mind-games: true
+      use-shield-defense: true
+      infinite-inventory: true
+      rage-enabled: true
+  pa_uhc_hard:
+    name: Uhc Hard
+    display-name: '&cHard Uhc Bot'
+    bot-type: UHC
+    allow-gui: false
+    despawn-on-owner-world-change: true
+    target-binding: REQUIRED
+    death-mode: RESPAWN
+    kill-mode: DESPAWN
+    respawn-delay-seconds: 5
+    warm-up-seconds: 0
+    skin-name: ''
+    inventory:
+      helmet-material: diamond
+      chestplate-material: diamond
+      leggings-material: diamond
+      boots-material: diamond
+      helmet-enchant: protection:3
+      chestplate-enchant: protection:3
+      leggings-enchant: protection:3
+      boots-enchant: protection:3
+      offhand-type: shield
+      totem-count: 0
+      armor-durability:
+        breakable: true
+        unbreaking-3: true
+      main-hand:
+        material: DIAMOND_SWORD
+        amount: 1
+        unbreakable: true
+        enchantments:
+          sharpness: 4
+      trims:
+        helmet:
+          pattern: ''
+          material: ''
+        chest:
+          pattern: ''
+          material: ''
+        legs:
+          pattern: ''
+          material: ''
+        boots:
+          pattern: ''
+          material: ''
+    uhc:
+      enabled: true
+      skill-level: 3
+      aggression: 3
+      bow-accuracy-percent: 99
+      use-bow: true
+      use-crossbow: true
+      use-lava: true
+      use-water: true
+      use-webs: true
+      use-gapples: true
+      use-axe-disable: true
+      use-shield-stun: true
+      web-trap-frequency-percent: 95
+      web-lava-combo-frequency-percent: 90
+      full-box-frequency-percent: 0
+      melee-accuracy-percent: 99
+      ranged-frequency-percent: 75
+      adaptive-mind-games: true
+      use-shield-defense: true
+      infinite-inventory: true
+      rage-enabled: true
+spear-template-name-revision: 1
