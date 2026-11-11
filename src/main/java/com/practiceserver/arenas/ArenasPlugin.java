@@ -14,6 +14,7 @@ public final class ArenasPlugin extends JavaPlugin {
     private SessionManager sessions;
     private BotCleaner cleaner;
     private RegenManager regen;
+    private LobbyManager lobby;
 
     @Override
     public void onEnable() {
@@ -25,6 +26,7 @@ public final class ArenasPlugin extends JavaPlugin {
         editor = new KitEditor(this);
         sessions = new SessionManager(this);
         cleaner = new BotCleaner(this);
+        lobby = new LobbyManager(this);
         arenas.load();
         layouts.load();
 
@@ -45,9 +47,10 @@ public final class ArenasPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(menus, this);
         getServer().getPluginManager().registerEvents(editor, this);
         getServer().getPluginManager().registerEvents(new SessionListener(this), this);
+        getServer().getPluginManager().registerEvents(new LobbyListener(this), this);
 
         CommandHandler handler = new CommandHandler(this);
-        for (String name : new String[]{"practicecore", "leave", "fight", "parena"}) {
+        for (String name : new String[]{"practicecore", "leave", "fight", "spawn", "parena"}) {
             PluginCommand pc = getCommand(name);
             if (pc != null) {
                 pc.setExecutor(handler);
@@ -71,6 +74,7 @@ public final class ArenasPlugin extends JavaPlugin {
     SessionManager sessions() { return sessions; }
     BotCleaner cleaner() { return cleaner; }
     RegenManager regen() { return regen; }
+    LobbyManager lobby() { return lobby; }
 
     String msg(String key, String def) {
         String prefix = getConfig().getString("messages.prefix", "&8[&bPractice&8] ");

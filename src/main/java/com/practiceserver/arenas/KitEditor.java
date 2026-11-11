@@ -8,6 +8,7 @@ import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -18,21 +19,25 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 
 /**
- * In-game kit editor.
- * Rows 1-3 = inventory, row 4 = hotbar, row 5 = fixed armor/offhand, row 6 = buttons.
- * Move items around, delete with the trash slot, add items from "Extra Materials", then Save.
+ * In-game kit editor (each player edits only their own layout).
+ * Rows 1-3 = inventory, row 4 = hotbar, row 5 = helmet / chestplate / leggings / boots / offhand,
+ * row 6 = buttons. Move items, delete with the trash slot, add from "Extra Materials", then Save.
  */
 final class KitEditor implements Listener {
 
-    private static final int ARMOR_ROW = 36;
+    private static final int EQUIP_START = 36;   // 36 helmet, 37 chestplate, 38 leggings, 39 boots, 40 offhand
+    private static final int EQUIP_END = 40;
     private static final int SAVE = 45;
     private static final int ADD = 47;
     private static final int RESET = 49;
     private static final int TRASH = 51;
     private static final int CLOSE = 53;
     private static final int BACK = 40;
+
+    private static final String[] EQUIP_NAMES = {"Helmet", "Chestplate / Elytra", "Leggings", "Boots", "Offhand"};
 
     static final class EditorHolder implements InventoryHolder {
         final String mode;
@@ -50,10 +55,12 @@ final class KitEditor implements Listener {
     }
 
     private final ArenasPlugin plugin;
+    private final NamespacedKey placeholderKey;
     private final Map<UUID, ItemStack[]> working = new HashMap<>();
 
     KitEditor(ArenasPlugin plugin) {
         this.plugin = plugin;
+        this.placeholderKey = new NamespacedKey(plugin, "placeholder");
     }
 
     void forget(UUID id) {
@@ -61,15 +68,15 @@ final class KitEditor implements Listener {
     }
 
     private String modeName(String mode) {
-        return plugin.getConfig().getString("modes." + mode + ".name", mode);
+        return plugin.getConfig().getString("modes." + mode + ".name", mode).replaceAll("&.", "");
     }
 
     // ------------------------------------------------------------ open
 
     void open(Player p, String mode) {
         ItemStack[] layout = plugin.kits().layoutFor(p, mode);
-        ItemStack[] copy = new ItemStack[36];
-        for (int i = 0; i < 36; i++) copy[i] = layout[i] == null ? null : layout[i].clone();
+        ItemStack[] copy = new ItemStack[LayoutManager.SIZE];
+        for (int i = 0; i < copy.length; i++) copy[i] = layout[i] == null ? null : layout[i].clone();
         working.put(p.getUniqueId(), copy);
         showEditor(p, mode);
     }
@@ -81,25 +88,29 @@ final class KitEditor implements Listener {
             return;
         }
         EditorHolder h = new EditorHolder(mode);
-        Inventory inv = Bukkit.createInventory(h, 54, Text.c("&8Editing Kit: &b" + modeName(mode).replaceAll("&.", "")));
+        Inventory inv = Bukkit.createInventory(h, 54, Text.c("&8Editing Kit: &b" + modeName(mode)));
         h.inventory = inv;
 
         for (int i = 0; i < 27; i++) inv.setItem(i, w[9 + i] == null ? null : w[9 + i].clone());
         for (int i = 0; i < 9; i++) inv.setItem(27 + i, w[i] == null ? null : w[i].clone());
 
         ItemStack pane = icon(Material.GRAY_STAINED_GLASS_PANE, " ", List.of());
-        for (int i = ARMOR_ROW; i < 54; i++) inv.setItem(i, pane);
-
-        ItemStack[] gear = plugin.kits().armorAndOffhand(mode);
-        for (int i = 0; i < 4; i++) if (gear[i] != null) inv.setItem(ARMOR_ROW + i, gear[i].clone());
-        if (gear[4] != null) inv.setItem(ARMOR_ROW + 5, gear[4].clone());
+        for (int i = EQUIP_END + 1; i < 54; i++) inv.setItem(i, pane);
+        for (int i = 0; i <= EQUIP_END - EQUIP_START; i++) {
+            ItemStack it = w[EQUIP_START + i];
+            if (it != null) {
+                inv.setItem(EQUIP_START + i, it.clone());
+            } else {
+                inv.setItem(EQUIP_START + i, placeholder(EQUIP_NAMES[i]));
+            }
+        }
 
         inv.setItem(SAVE, icon(Material.LIME_DYE, "&a&lSave Layout",
-                List.of("&7Saves this hotbar and inventory order.", "&7It is used every time you play this mode.")));
+                List.of("&7Saves this kit for you only.", "&7It is used every time you play this mode.")));
         inv.setItem(ADD, icon(Material.CHEST, "&b&lAdd Items",
                 List.of("&7Open the extra materials for this mode.")));
         inv.setItem(RESET, icon(Material.RED_DYE, "&c&lReset to Default",
-                List.of("&7Restore the default kit layout.")));
+                List.of("&7Restore the default kit.")));
         inv.setItem(TRASH, icon(Material.HOPPER, "&4&lDelete Item",
                 List.of("&7Pick up an item and click here", "&7to delete it from the kit.")));
         inv.setItem(CLOSE, icon(Material.BARRIER, "&c&lClose",
@@ -109,7 +120,7 @@ final class KitEditor implements Listener {
 
     private void openExtras(Player p, String mode) {
         ExtrasHolder h = new ExtrasHolder(mode);
-        Inventory inv = Bukkit.createInventory(h, 45, Text.c("&8Extra Materials: &b" + modeName(mode).replaceAll("&.", "")));
+        Inventory inv = Bukkit.createInventory(h, 45, Text.c("&8Extra Materials: &b" + modeName(mode)));
         h.inventory = inv;
         int i = 0;
         for (String line : plugin.getConfig().getStringList("kits." + mode + ".extras")) {
@@ -119,7 +130,9 @@ final class KitEditor implements Listener {
             ItemStack shown = it.clone();
             ItemMeta meta = shown.getItemMeta();
             if (meta != null) {
-                meta.lore(List.of(Text.c("&eClick to add to your kit")));
+                List<Component> lore = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
+                lore.add(Text.c("&eClick to add to your kit"));
+                meta.lore(lore);
                 shown.setItemMeta(meta);
             }
             inv.setItem(i++, shown);
@@ -129,6 +142,8 @@ final class KitEditor implements Listener {
         inv.setItem(BACK, icon(Material.ARROW, "&a&lBack to Editor", List.of("&7Your changes are kept.")));
         p.openInventory(inv);
     }
+
+    // ------------------------------------------------------------ helpers
 
     private ItemStack icon(Material m, String name, List<String> lore) {
         ItemStack it = new ItemStack(m);
@@ -142,21 +157,40 @@ final class KitEditor implements Listener {
         return it;
     }
 
-    // ------------------------------------------------------------ helpers
-
-    private static ItemStack clean(ItemStack it) {
-        return (it == null || it.getType().isAir()) ? null : it.clone();
+    private ItemStack placeholder(String slotName) {
+        ItemStack it = icon(Material.LIGHT_GRAY_STAINED_GLASS_PANE, "&7" + slotName + " slot",
+                List.of("&8Put your " + slotName.toLowerCase() + " here"));
+        ItemMeta meta = it.getItemMeta();
+        meta.getPersistentDataContainer().set(placeholderKey, PersistentDataType.BYTE, (byte) 1);
+        it.setItemMeta(meta);
+        return it;
     }
 
-    private void harvest(UUID id, Inventory top) {
-        ItemStack[] w = new ItemStack[36];
-        for (int i = 0; i < 27; i++) w[9 + i] = clean(top.getItem(i));
-        for (int i = 0; i < 9; i++) w[i] = clean(top.getItem(27 + i));
-        working.put(id, w);
+    private boolean isPlaceholder(ItemStack it) {
+        if (it == null || !it.hasItemMeta()) return false;
+        return it.getItemMeta().getPersistentDataContainer().has(placeholderKey, PersistentDataType.BYTE);
     }
 
     private static boolean hasItem(ItemStack it) {
         return it != null && !it.getType().isAir();
+    }
+
+    private ItemStack clean(ItemStack it) {
+        return (it == null || it.getType().isAir() || isPlaceholder(it)) ? null : it.clone();
+    }
+
+    private void harvest(UUID id, Inventory top) {
+        ItemStack[] w = new ItemStack[LayoutManager.SIZE];
+        for (int i = 0; i < 27; i++) w[9 + i] = clean(top.getItem(i));
+        for (int i = 0; i < 9; i++) w[i] = clean(top.getItem(27 + i));
+        for (int i = EQUIP_START; i <= EQUIP_END; i++) w[i] = clean(top.getItem(i));
+        working.put(id, w);
+    }
+
+    /** Armor slots only take the right piece. The offhand takes anything. */
+    private boolean equipOk(int raw, ItemStack it) {
+        if (raw == 40) return true;
+        return KitManager.equipIndex(it) == raw;
     }
 
     // ------------------------------------------------------------ events
@@ -168,7 +202,7 @@ final class KitEditor implements Listener {
             e.setCancelled(true);
         } else if (holder instanceof EditorHolder) {
             for (int raw : e.getRawSlots()) {
-                if (raw >= ARMOR_ROW) {
+                if (raw >= EQUIP_START) {
                     e.setCancelled(true);
                     return;
                 }
@@ -202,7 +236,22 @@ final class KitEditor implements Listener {
             e.setCancelled(true);
             return;
         }
-        if (raw < ARMOR_ROW) return; // free editing area
+        if (raw < EQUIP_START) return; // free editing area
+
+        if (raw <= EQUIP_END) {        // helmet, chestplate, leggings, boots, offhand
+            ItemStack cursor = e.getCursor();
+            ItemStack inSlot = top.getItem(raw);
+            if (isPlaceholder(inSlot)) {
+                e.setCancelled(true);
+                if (hasItem(cursor) && equipOk(raw, cursor)) {
+                    top.setItem(raw, cursor.clone());
+                    p.setItemOnCursor(null);
+                }
+                return;
+            }
+            if (hasItem(cursor) && !equipOk(raw, cursor)) e.setCancelled(true);
+            return;
+        }
 
         e.setCancelled(true);
         UUID id = p.getUniqueId();
@@ -231,8 +280,7 @@ final class KitEditor implements Listener {
         } else if (raw == RESET) {
             p.setItemOnCursor(null);
             plugin.layouts().reset(id, h.mode);
-            ItemStack[] def = plugin.kits().defaultLayout(h.mode);
-            working.put(id, def);
+            working.put(id, plugin.kits().defaultLayout(h.mode));
             Bukkit.getScheduler().runTask(plugin, () -> showEditor(p, h.mode));
             Text.send(p, plugin.msg("kit-reset", "&eKit reset to the default layout."));
         } else if (raw == CLOSE) {
@@ -253,9 +301,17 @@ final class KitEditor implements Listener {
         if (raw >= x.items.size()) return;
         ItemStack[] w = working.get(id);
         if (w == null) return;
+        ItemStack add = x.items.get(raw).clone();
+
+        int eq = KitManager.equipIndex(add);
+        if (eq >= 0 && w[eq] == null) {
+            w[eq] = add;
+            Text.send(p, plugin.msg("kit-added", "&aAdded to your kit."));
+            return;
+        }
         for (int i = 0; i < 36; i++) {
             if (w[i] == null) {
-                w[i] = x.items.get(raw).clone();
+                w[i] = add;
                 Text.send(p, plugin.msg("kit-added", "&aAdded to your kit."));
                 return;
             }

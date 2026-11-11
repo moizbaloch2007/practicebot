@@ -78,8 +78,15 @@ final class SessionManager {
     void leave(Player p) {
         end(p.getUniqueId());
         plugin.kits().clearKit(p);
-        String c = plugin.getConfig().getString("lobby-command", "warp lobby {player}");
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), c.replace("{player}", p.getName()));
+        if (!plugin.lobby().teleport(p)) {
+            String c = plugin.getConfig().getString("lobby-command", "");
+            if (c != null && !c.isBlank()) {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), c.replace("{player}", p.getName()));
+            } else {
+                Text.send(p, "&cThe lobby spawn is not set. An admin must run &e/parena setlobby&c.");
+            }
+        }
+        plugin.lobby().giveItemsLater(p, 3L);
     }
 
     // ------------------------------------------------------------ prep

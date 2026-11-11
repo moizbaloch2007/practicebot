@@ -25,6 +25,11 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
         switch (cmd.getName().toLowerCase(Locale.ROOT)) {
             case "practicecore" -> core(sender, args);
             case "leave" -> player(sender, p -> plugin.sessions().leave(p));
+            case "spawn" -> player(sender, p -> {
+                if (plugin.sessions().get(p.getUniqueId()) != null) plugin.sessions().leave(p);
+                else if (plugin.lobby().teleport(p)) plugin.lobby().giveItemsLater(p, 3L);
+                else Text.send(p, "&cThe lobby spawn is not set. An admin must run &e/parena setlobby&c.");
+            });
             case "fight" -> player(sender, p -> plugin.sessions().fight(p));
             case "parena" -> admin(sender, args);
             default -> { return false; }
@@ -72,19 +77,26 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
             return;
         }
         if (a.length == 0) {
+            Text.send(s, "&e/parena setlobby &7- set the lobby spawn where you stand");
             Text.send(s, "&e/parena create <type> <id> &7- new arena of a type");
             Text.send(s, "&e/parena addspawn <id> &7- add your position as a player slot");
             Text.send(s, "&e/parena remove <id> &7- delete an arena");
             Text.send(s, "&e/parena list &7- show arenas and slots");
             Text.send(s, "&e/parena tp <id> [slot] &7- teleport to a spawn");
-            Text.send(s, "&e/parena paste <id> <schematic> &7- paste the arena here and link it for regeneration");
-            Text.send(s, "&e/parena link <id> <schematic> &7- link an arena you already pasted (stand where you pasted it)");
-            Text.send(s, "&e/parena regen <id> [slot] &7- restore a slot now (test)");
+            Text.send(s, "&e/parena save <id> &7- save your //wand selection as the clean copy of this arena");
+            Text.send(s, "&e/parena clone <id> [count] &7- make copies with the same spawn points");
+            Text.send(s, "&e/parena regen <id> [slot] &7- restore one slot now (test)");
+            Text.send(s, "&e/parena regenall <id> &7- restore the whole arena now");
             Text.send(s, "&e/parena reload &7- reload config and arenas");
             return;
         }
         ArenaManager am = plugin.arenas();
         switch (a[0].toLowerCase(Locale.ROOT)) {
+            case "setlobby" -> {
+                if (!(s instanceof Player p)) { Text.send(s, "&cOnly players can use this."); return; }
+                plugin.lobby().setSpawn(p.getLocation());
+                Text.send(s, "&aLobby spawn set. Players land here on join, respawn, /spawn and /leave.");
+            }
             case "create" -> {
                 if (a.length < 3) { Text.send(s, "&cUsage: /parena create <type> <id>"); return; }
                 String type = a[1].toLowerCase(Locale.ROOT);
@@ -140,22 +152,33 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
                 if (l == null) { Text.send(s, "&cThat world is not loaded."); return; }
                 p.teleport(l);
             }
-            case "paste" -> {
+            case "save" -> {
                 if (!(s instanceof Player p)) { Text.send(s, "&cOnly players can use this."); return; }
                 if (plugin.regen() == null) { Text.send(s, "&cNeeds FastAsyncWorldEdit and regen.enabled: true."); return; }
-                if (a.length < 3) { Text.send(s, "&cUsage: /parena paste <id> <schematic>"); return; }
+                if (a.length < 2) { Text.send(s, "&cUsage: /parena save <id>  (select the arena with //wand first)"); return; }
                 Arena ar = am.get(a[1]);
                 if (ar == null) { Text.send(s, "&cNo such arena. Create it first with /parena create."); return; }
-                plugin.regen().paste(p, ar, a[2]);
+                plugin.regen().save(p, ar);
             }
-            case "link" -> {
+            case "clone" -> {
                 if (!(s instanceof Player p)) { Text.send(s, "&cOnly players can use this."); return; }
-                if (a.length < 3) { Text.send(s, "&cUsage: /parena link <id> <schematic>"); return; }
+                if (plugin.regen() == null) { Text.send(s, "&cNeeds FastAsyncWorldEdit and regen.enabled: true."); return; }
+                if (a.length < 2) { Text.send(s, "&cUsage: /parena clone <id> [count]"); return; }
                 Arena ar = am.get(a[1]);
                 if (ar == null) { Text.send(s, "&cNo such arena."); return; }
-                Location l = p.getLocation();
-                am.setOrigin(ar, a[2], l.getWorld().getName(), l.getBlockX(), l.getBlockY(), l.getBlockZ());
-                Text.send(s, "&aLinked &f" + ar.id + " &ato &f" + a[2] + " &aat your position. This must be the exact block where you pasted it.");
+                int count = 1;
+                if (a.length > 2 && a[2].matches("\\d+")) count = Integer.parseInt(a[2]);
+                plugin.regen().cloneArena(p, ar, count);
+            }
+            case "regenall" -> {
+                if (plugin.regen() == null) { Text.send(s, "&cNeeds FastAsyncWorldEdit and regen.enabled: true."); return; }
+                if (a.length < 2) { Text.send(s, "&cUsage: /parena regenall <id>"); return; }
+                Arena ar = am.get(a[1]);
+                if (ar == null) { Text.send(s, "&cNo such arena."); return; }
+                if (!ar.canRegen()) { Text.send(s, "&cThis arena has no snapshot yet. Use /parena save."); return; }
+                if (!ar.taken.isEmpty()) { Text.send(s, "&cPlayers are inside this arena right now."); return; }
+                plugin.regen().fullRegen(ar);
+                Text.send(s, "&aRestoring the whole arena &f" + ar.id + "&a...");
             }
             case "regen" -> {
                 if (plugin.regen() == null) { Text.send(s, "&cNeeds FastAsyncWorldEdit and regen.enabled: true."); return; }
@@ -173,6 +196,7 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
                 plugin.reloadConfig();
                 am.load();
                 plugin.layouts().load();
+                plugin.lobby().load();
                 if (plugin.regen() != null) plugin.regen().clearCache();
                 Text.send(s, "&aReloaded.");
             }
@@ -191,7 +215,7 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
         }
         if (!name.equals("parena")) return out;
         if (args.length == 1) {
-            for (String x : new String[]{"create", "addspawn", "remove", "list", "tp", "paste", "link", "regen", "reload"})
+            for (String x : new String[]{"setlobby", "create", "addspawn", "remove", "list", "tp", "save", "clone", "regen", "regenall", "reload"})
                 if (x.startsWith(args[0].toLowerCase(Locale.ROOT))) out.add(x);
         } else if (args.length == 2 && args[0].equalsIgnoreCase("create")) {
             ConfigurationSection types = plugin.getConfig().getConfigurationSection("arena-types");

@@ -9,8 +9,13 @@ import org.bukkit.Material;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 
-/** Stores each player's saved inventory layout per mode (layouts.yml). Index = player inventory slot 0-35. */
+/**
+ * Stores each player's saved kit layout per mode (layouts.yml).
+ * Index 0-35 = inventory slots, 36 helmet, 37 chestplate, 38 leggings, 39 boots, 40 offhand.
+ */
 final class LayoutManager {
+
+    static final int SIZE = 41;
 
     private final ArenasPlugin plugin;
     private File file;
@@ -28,8 +33,9 @@ final class LayoutManager {
     ItemStack[] get(UUID id, String mode) {
         List<?> list = yaml.getList("players." + id + "." + mode);
         if (list == null) return null;
-        ItemStack[] out = new ItemStack[36];
-        for (int i = 0; i < 36 && i < list.size(); i++) {
+        if (list.size() < SIZE) return null; // older layouts without armor are reset to the default
+        ItemStack[] out = new ItemStack[SIZE];
+        for (int i = 0; i < SIZE; i++) {
             Object o = list.get(i);
             if (o instanceof ItemStack s && !s.getType().isAir()) out[i] = s;
         }
@@ -38,7 +44,7 @@ final class LayoutManager {
 
     void set(UUID id, String mode, ItemStack[] layout) {
         List<ItemStack> list = new ArrayList<>();
-        for (int i = 0; i < 36; i++) {
+        for (int i = 0; i < SIZE; i++) {
             list.add(layout[i] == null ? new ItemStack(Material.AIR) : layout[i]);
         }
         yaml.set("players." + id + "." + mode, list);

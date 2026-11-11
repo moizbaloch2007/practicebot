@@ -24,6 +24,15 @@ final class Arena {
     int oy;
     int oz;
     boolean hasOrigin;
+    /** true = schem is a snapshot made by /parena save, origin is its minimum corner. */
+    boolean snap;
+    /** Someone used this arena since its last full reset. */
+    boolean dirty;
+    /** A reset is about to happen, nobody new may join. */
+    boolean locked;
+    int sx;
+    int sy;
+    int sz;
 
     Arena(String id, String type) {
         this.id = id;
@@ -31,6 +40,7 @@ final class Arena {
     }
 
     int freeIndex() {
+        if (locked) return -1;
         for (int i = 0; i < spawns.size(); i++) {
             if (!taken.containsKey(i) && !regenerating.contains(i)) return i;
         }

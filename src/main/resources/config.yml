@@ -1,13 +1,14 @@
 # ==========================================================
-#  PracticeCore config      (reload with /pc admin reload)
-#  Colors use & codes.
+#  PracticeCore config      (reload with /parena reload)
+#  Colors use & codes. Everything here can be changed.
 # ==========================================================
 
 # Print the commands the plugin runs to the console (helps when testing).
 debug: false
 
-# Command used to send a player back to the lobby. Runs as console.
-lobby-command: "warp lobby {player}"
+# Used only if the lobby spawn is not set. Normally leave this empty and run
+# /parena setlobby where players should appear.
+lobby-command: ""
 
 # Command that spawns the PracticeBot bot. Runs as console.
 bot-spawn-command: "pbadmin template spawn {template} {player} {world} {x} {y} {z} {yaw} {pitch}"
@@ -34,10 +35,42 @@ bot-cleanup:
   list-command: "pbadmin bot list --target {player}"
   despawn-command: "pbadmin bot despawn {id}"
 
-# Arena regeneration (needs FastAsyncWorldEdit).
-# After a fight the area around that player's slot is restored from the arena's
-# schematic, and leftover crystals, minecarts, TNT, items and arrows are removed.
-# Link an arena with /parena paste <id> <schematic> (or /parena link).
+# ---------------------------------------------------------- lobby
+# Spawn point: /parena setlobby. Players land there on join, respawn, /spawn and /leave.
+lobby:
+  worlds: []             # lobby worlds. Empty = the world of the lobby spawn
+  spawn-on-join: true
+  respawn-at-lobby: true
+  protect:               # simple protection inside the lobby world
+    enabled: true
+    build: true          # no placing or breaking blocks
+    damage: true         # no damage (the void sends you back to the spawn)
+    hunger: true
+    drop-items: true
+
+# Items players get in the lobby (replaces ItemJoin).
+# action: a command run by the player. Use "console: say hi {player}" to run it as console.
+lobby-items:
+  enabled: true
+  items:
+    menu:
+      slot: 4
+      material: NETHER_STAR
+      name: "&a&lPractice Menu &7(Right Click)"
+      lore: ["&7Choose a mode and fight bots"]
+      action: "pc"
+    kits:
+      slot: 2
+      material: ANVIL
+      name: "&e&lKit Editor &7(Right Click)"
+      lore: ["&7Arrange your kit for each mode"]
+      action: "pc kit"
+
+# ---------------------------------------------------------- arena regeneration (needs FastAsyncWorldEdit)
+# Workflow: build an arena, add spawns, select it with //wand, then /parena save <id>.
+# /parena clone <id> <count> makes copies with the same spawn points.
+# After a fight the area around that player's slot is restored from the snapshot, and
+# leftover crystals, minecarts, TNT, items and arrows are removed.
 # Keep slots at least radius x 2 blocks apart.
 regen:
   enabled: true
@@ -49,7 +82,21 @@ regen:
     - plugins/FastAsyncWorldEdit/schematics
     - plugins/WorldEdit/schematics
 
+# /parena clone puts new copies in the same world, this many blocks apart.
+clone:
+  gap: 100
+
+# Timed reset of the whole arena (like ArenaRegen). Only arenas that were used get reset.
+auto-regen:
+  enabled: true
+  interval-minutes: 5
+  players: kick           # kick = players are sent to the lobby when the time is up
+                          # wait = the arena is only reset when it is empty
+  no-join-seconds: 10     # nobody can join an arena in the last seconds before its reset
+  warn-seconds: [60, 30, 10, 5, 4, 3, 2, 1]
+
 menus:
+  style: dialog           # dialog = Minecraft dialog windows (Paper 1.21.7+), chest = inventory menus
   hub-title: "&8&lPracticeCore"
   hub-size: 27
   mode-title: "&8&lChoose Mode"
@@ -69,6 +116,8 @@ messages:
   prep: "&aSet up your hotbar. Nothing attacks you until you start."
   prep-help: "&7Or type &e/fight&7. Use &e/leave &7to go back to the lobby."
   no-session: "&cYou are not in a practice session. Use &e/pc&c."
+  regen-warning: "&eThis arena resets in &f{s} &eseconds."
+  regen-kick: "&eThe arena is being reset. You were sent back to the lobby."
   kit-saved: "&aKit layout saved."
   kit-reset: "&eKit reset to the default layout."
   kit-deleted: "&cItem deleted from the kit."
@@ -87,7 +136,7 @@ hub:
     slot: 13
     icon: ANVIL
     name: "&e&lKit Editor"
-    lore: ["&7Arrange your hotbar for each mode"]
+    lore: ["&7Arrange your kit for each mode"]
   leave:
     slot: 15
     icon: RED_BED
@@ -113,7 +162,7 @@ difficulties:
     lore: ["&7Fast, accurate and aggressive"]
 
 # ---------------------------------------------------------- modes
-# templates = PracticeBot template per difficulty (from pa_templates.yml)
+# templates  = PracticeBot template per difficulty (from pa_templates.yml)
 # permission = permission needed to pick the mode (leave empty for everyone)
 modes:
   normal:
@@ -162,29 +211,33 @@ modes:
 # ---------------------------------------------------------- arena types
 # Build arenas of a type with:  /parena create <type> <id>
 # then stand on each player spawn and run:  /parena addspawn <id>
-# Every spawn is one player slot (6 spawns = 6 players in that arena).
+# Every spawn is one player slot (10 spawns = 10 players in that arena).
+# To add a new type: add it here, e.g. "mesa", then /parena create mesa mesa-1
 arena-types:
   plains:
     slot: 11
     icon: GRASS_BLOCK
     name: "&a&lPlains"
     lore: ["&7Open grass arena"]
-  nether:
-    slot: 13
-    icon: NETHERRACK
-    name: "&c&lNether"
-    lore: ["&7Nether arena"]
   desert:
-    slot: 15
+    slot: 13
     icon: SAND
     name: "&e&lDesert"
     lore: ["&7Sand arena"]
+  mesa:
+    slot: 15
+    icon: RED_SAND
+    name: "&c&lRed Sand"
+    lore: ["&7Red sand arena"]
 
 # ---------------------------------------------------------- player kits
-# items  = default kit (first items fill the hotbar). Armor goes on automatically
-#          and cannot be moved in the editor.
-# extras = what players can add from the editor's "Extra Materials" menu.
-# Item format: MATERIAL [amount] [enchant:level ...] [unbreakable]
+# items   = the default kit (first items fill the hotbar). Armor goes in the armor slots.
+# offhand = default offhand item.
+# extras  = what players can add from the editor's "Extra Materials" menu (max 36 per mode).
+# Players can change their own kit in the Kit Editor. It is saved per player.
+# Item format: MATERIAL [amount] [enchant:level ...] [potion:type] [unbreakable]
+#   potions: SPLASH_POTION 8 potion:strong_healing   (also strong_strength, strong_swiftness, ...)
+# Not in CPVP by default (add them to extras if you want): RESPAWN_ANCHOR, GLOWSTONE, CROSSBOW
 # Bad names are skipped and logged to the console.
 kits:
   normal:
@@ -193,10 +246,10 @@ kits:
       - SHIELD 1 unbreaking:3
       - GOLDEN_APPLE 16
       - COOKED_BEEF 32
-      - NETHERITE_HELMET 1 protection:4 unbreaking:3
-      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3
-      - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3
-      - NETHERITE_BOOTS 1 protection:4 unbreaking:3
+      - NETHERITE_HELMET 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_BOOTS 1 protection:4 unbreaking:3 mending:1
     extras:
       - NETHERITE_SWORD 1 sharpness:5 unbreaking:3
       - DIAMOND_SWORD 1 sharpness:5 unbreaking:3
@@ -208,6 +261,19 @@ kits:
       - COOKED_BEEF 32
       - TOTEM_OF_UNDYING 1
       - ENDER_PEARL 16
+      - SPLASH_POTION 8 potion:strong_healing
+      - POTION 1 potion:strong_strength
+      - POTION 1 potion:strong_swiftness
+      - POTION 1 potion:long_fire_resistance
+      - NETHERITE_HELMET 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_BOOTS 1 protection:4 unbreaking:3 mending:1
+      - DIAMOND_HELMET 1 protection:4 unbreaking:3 mending:1
+      - DIAMOND_CHESTPLATE 1 protection:4 unbreaking:3 mending:1
+      - DIAMOND_LEGGINGS 1 protection:4 unbreaking:3 mending:1
+      - DIAMOND_BOOTS 1 protection:4 unbreaking:3 mending:1
+      - ELYTRA 1 unbreaking:3
   cpvp:
     offhand: TOTEM_OF_UNDYING 1
     items:
@@ -217,10 +283,11 @@ kits:
       - GOLDEN_APPLE 16
       - ENDER_PEARL 16
       - TOTEM_OF_UNDYING 3
-      - NETHERITE_HELMET 1 protection:4 unbreaking:3
-      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3
-      - NETHERITE_LEGGINGS 1 blast_protection:4 unbreaking:3
-      - NETHERITE_BOOTS 1 protection:4 unbreaking:3
+      - EXPERIENCE_BOTTLE 32
+      - NETHERITE_HELMET 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_LEGGINGS 1 blast_protection:4 unbreaking:3 mending:1
+      - NETHERITE_BOOTS 1 protection:4 unbreaking:3 mending:1
     extras:
       - NETHERITE_SWORD 1 sharpness:5 unbreaking:3
       - NETHERITE_AXE 1 sharpness:5 unbreaking:3
@@ -231,9 +298,21 @@ kits:
       - GOLDEN_APPLE 16
       - ENCHANTED_GOLDEN_APPLE 4
       - TOTEM_OF_UNDYING 1
-      - COBWEB 16
       - EXPERIENCE_BOTTLE 64
+      - COBWEB 16
       - SHIELD 1 unbreaking:3
+      - WIND_CHARGE 64
+      - SPLASH_POTION 8 potion:strong_healing
+      - POTION 1 potion:strong_strength
+      - POTION 1 potion:strong_swiftness
+      - POTION 1 potion:long_fire_resistance
+      - NETHERITE_HELMET 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_BOOTS 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_LEGGINGS 1 blast_protection:4 unbreaking:3 mending:1
+      - ELYTRA 1 unbreaking:3
+      - FIREWORK_ROCKET 64
   mace:
     offhand: TOTEM_OF_UNDYING 1
     items:
@@ -243,22 +322,32 @@ kits:
       - GOLDEN_APPLE 16
       - ENDER_PEARL 16
       - TOTEM_OF_UNDYING 3
-      - NETHERITE_HELMET 1 protection:4 unbreaking:3
-      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3
-      - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3
-      - NETHERITE_BOOTS 1 protection:4 unbreaking:3
+      - NETHERITE_HELMET 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_BOOTS 1 protection:4 unbreaking:3 mending:1
     extras:
       - MACE 1 density:5 breach:4 unbreaking:3
       - MACE 1 density:5 wind_burst:3 unbreaking:3
       - NETHERITE_SWORD 1 sharpness:5 unbreaking:3
       - NETHERITE_AXE 1 sharpness:5
+      - DIAMOND_AXE 1 sharpness:5
       - WIND_CHARGE 64
-      - ELYTRA 1 unbreaking:3
-      - FIREWORK_ROCKET 64
       - ENDER_PEARL 16
       - GOLDEN_APPLE 16
+      - ENCHANTED_GOLDEN_APPLE 4
       - TOTEM_OF_UNDYING 1
       - SHIELD 1 unbreaking:3
+      - SPLASH_POTION 8 potion:strong_healing
+      - POTION 1 potion:strong_strength
+      - POTION 1 potion:strong_swiftness
+      - POTION 1 potion:long_fire_resistance
+      - NETHERITE_HELMET 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_BOOTS 1 protection:4 unbreaking:3 mending:1
+      - ELYTRA 1 unbreaking:3
+      - FIREWORK_ROCKET 64
   spearmace:
     offhand: TOTEM_OF_UNDYING 1
     items:
@@ -267,18 +356,30 @@ kits:
       - WIND_CHARGE 64
       - GOLDEN_APPLE 16
       - TOTEM_OF_UNDYING 3
-      - NETHERITE_HELMET 1 protection:4 unbreaking:3
-      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3
-      - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3
-      - NETHERITE_BOOTS 1 protection:4 unbreaking:3
+      - NETHERITE_HELMET 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_BOOTS 1 protection:4 unbreaking:3 mending:1
     extras:
       - NETHERITE_SPEAR 1 unbreaking:3
+      - DIAMOND_SPEAR 1 unbreaking:3
       - MACE 1 density:5 breach:4 unbreaking:3
+      - NETHERITE_AXE 1 sharpness:5
       - WIND_CHARGE 64
       - ENDER_PEARL 16
       - GOLDEN_APPLE 16
       - TOTEM_OF_UNDYING 1
       - SHIELD 1 unbreaking:3
+      - SPLASH_POTION 8 potion:strong_healing
+      - POTION 1 potion:strong_strength
+      - POTION 1 potion:strong_swiftness
+      - POTION 1 potion:long_fire_resistance
+      - NETHERITE_HELMET 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_BOOTS 1 protection:4 unbreaking:3 mending:1
+      - ELYTRA 1 unbreaking:3
+      - FIREWORK_ROCKET 64
   cart:
     offhand: TOTEM_OF_UNDYING 1
     items:
@@ -289,24 +390,34 @@ kits:
       - FLINT_AND_STEEL 1
       - OBSIDIAN 32
       - GOLDEN_APPLE 16
-      - NETHERITE_HELMET 1 protection:4 unbreaking:3
-      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3
-      - NETHERITE_LEGGINGS 1 blast_protection:4 unbreaking:3
-      - NETHERITE_BOOTS 1 protection:4 unbreaking:3
+      - NETHERITE_HELMET 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_LEGGINGS 1 blast_protection:4 unbreaking:3 mending:1
+      - NETHERITE_BOOTS 1 protection:4 unbreaking:3 mending:1
     extras:
       - NETHERITE_SWORD 1 sharpness:5 unbreaking:3
+      - NETHERITE_AXE 1 sharpness:5 unbreaking:3
       - TNT_MINECART 16
       - RAIL 64
       - POWERED_RAIL 64
       - ACTIVATOR_RAIL 16
       - DETECTOR_RAIL 16
       - FLINT_AND_STEEL 1
+      - BOW 1 power:5 flame:1 unbreaking:3
       - CROSSBOW 1 quick_charge:3 unbreaking:3
       - ARROW 64
       - OBSIDIAN 64
       - ENDER_PEARL 16
       - GOLDEN_APPLE 16
       - TOTEM_OF_UNDYING 1
+      - SHIELD 1 unbreaking:3
+      - SPLASH_POTION 8 potion:strong_healing
+      - POTION 1 potion:strong_strength
+      - NETHERITE_HELMET 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_CHESTPLATE 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_LEGGINGS 1 protection:4 unbreaking:3 mending:1
+      - NETHERITE_BOOTS 1 protection:4 unbreaking:3 mending:1
+      - ELYTRA 1 unbreaking:3
   uhc:
     items:
       - DIAMOND_SWORD 1 sharpness:3
@@ -325,6 +436,7 @@ kits:
     extras:
       - DIAMOND_SWORD 1 sharpness:3
       - DIAMOND_AXE 1 sharpness:3
+      - IRON_SWORD 1 sharpness:2
       - BOW 1 power:3
       - CROSSBOW 1
       - ARROW 64
@@ -336,3 +448,13 @@ kits:
       - SHIELD 1
       - FISHING_ROD 1
       - FLINT_AND_STEEL 1
+      - COBBLESTONE 64
+      - OAK_PLANKS 64
+      - DIAMOND_HELMET 1 protection:3
+      - DIAMOND_CHESTPLATE 1 protection:3
+      - DIAMOND_LEGGINGS 1 protection:3
+      - DIAMOND_BOOTS 1 protection:3
+      - IRON_HELMET 1 protection:3
+      - IRON_CHESTPLATE 1 protection:3
+      - IRON_LEGGINGS 1 protection:3
+      - IRON_BOOTS 1 protection:3

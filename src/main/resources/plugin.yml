@@ -1,5 +1,5 @@
 name: PracticeCore
-version: 1.2.0
+version: 1.3.0
 main: com.practiceserver.arenas.ArenasPlugin
 api-version: '1.21'
 description: Menus, arenas, difficulty, kit editor and PracticeBot control.
@@ -15,6 +15,10 @@ commands:
   fight:
     description: Start the fight after setting up your kit
     aliases: [start]
+    permission: practicecore.use
+  spawn:
+    description: Go to the lobby
+    aliases: [lobby, hub]
     permission: practicecore.use
   parena:
     description: Arena admin commands

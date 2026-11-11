@@ -52,6 +52,17 @@ final class ArenaManager {
                     a.hasOrigin = false;
                 }
             }
+            a.snap = sec.getBoolean(id + ".snap", false);
+            String[] sz = sec.getString(id + ".size", "").split(";");
+            if (sz.length == 3) {
+                try {
+                    a.sx = Integer.parseInt(sz[0]);
+                    a.sy = Integer.parseInt(sz[1]);
+                    a.sz = Integer.parseInt(sz[2]);
+                } catch (NumberFormatException ignored) {
+                    a.sx = 0;
+                }
+            }
             arenas.put(id.toLowerCase(Locale.ROOT), a);
         }
     }
@@ -66,6 +77,8 @@ final class ArenaManager {
             yaml.set("arenas." + a.id + ".spawns", list);
             if (a.schem != null && !a.schem.isEmpty()) yaml.set("arenas." + a.id + ".schem", a.schem);
             if (a.hasOrigin) yaml.set("arenas." + a.id + ".origin", a.originWorld + ";" + a.ox + ";" + a.oy + ";" + a.oz);
+            if (a.snap) yaml.set("arenas." + a.id + ".snap", true);
+            if (a.sx > 0) yaml.set("arenas." + a.id + ".size", a.sx + ";" + a.sy + ";" + a.sz);
         }
         try {
             plugin.getDataFolder().mkdirs();
@@ -82,6 +95,25 @@ final class ArenaManager {
         a.oy = y;
         a.oz = z;
         a.hasOrigin = true;
+        save();
+    }
+
+    void setSnapshot(Arena a, String world, int x, int y, int z, int sx, int sy, int sz) {
+        a.schem = a.id;
+        a.originWorld = world;
+        a.ox = x;
+        a.oy = y;
+        a.oz = z;
+        a.sx = sx;
+        a.sy = sy;
+        a.sz = sz;
+        a.snap = true;
+        a.hasOrigin = true;
+        save();
+    }
+
+    void register(Arena a) {
+        arenas.put(a.id.toLowerCase(Locale.ROOT), a);
         save();
     }
 
@@ -134,6 +166,7 @@ final class ArenaManager {
             int idx = a.freeIndex();
             if (idx >= 0) {
                 a.taken.put(idx, player);
+                a.dirty = true;
                 Assignment as = new Assignment(a, idx);
                 byPlayer.put(player, as);
                 return as;
