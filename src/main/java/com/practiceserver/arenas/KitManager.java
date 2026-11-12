@@ -6,10 +6,12 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
+import net.kyori.adventure.text.Component;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -27,10 +29,12 @@ final class KitManager {
 
     private final ArenasPlugin plugin;
     private final NamespacedKey kitKey;
+    private final NamespacedKey arenaItemKey;
 
     KitManager(ArenasPlugin plugin) {
         this.plugin = plugin;
         this.kitKey = new NamespacedKey(plugin, "kit");
+        this.arenaItemKey = new NamespacedKey(plugin, "arena_item");
     }
 
     // ------------------------------------------------------------ tagging
@@ -102,15 +106,33 @@ final class KitManager {
         return out;
     }
 
-    ItemStack[] layoutFor(Player p, String mode) {
-        ItemStack[] saved = plugin.layouts().get(p.getUniqueId(), mode);
+    /** A saved kit of the player (slot 1-3), or the default if that slot is empty. */
+    ItemStack[] slotLayout(Player p, String mode, int slot) {
+        ItemStack[] saved = plugin.layouts().get(p.getUniqueId(), mode, slot);
         return saved != null ? saved : defaultLayout(mode);
     }
 
-    void give(Player p, String mode) {
+    /** key = "default" or "1".."3". */
+    ItemStack[] layoutFor(Player p, String mode, String key) {
+        if (!"default".equals(key) && key.matches("[1-3]")) return slotLayout(p, mode, Integer.parseInt(key));
+        return defaultLayout(mode);
+    }
+
+    /** The kit the player last selected for this mode ("default" if none, or if it was deleted). */
+    String selectedKey(Player p, String mode) {
+        String key = plugin.layouts().selected(p.getUniqueId(), mode);
+        if (key.matches("[1-3]") && plugin.layouts().has(p.getUniqueId(), mode, Integer.parseInt(key))) return key;
+        return "default";
+    }
+
+    void giveSelected(Player p, String mode) {
+        give(p, mode, selectedKey(p, mode));
+    }
+
+    void give(Player p, String mode, String key) {
         PlayerInventory inv = p.getInventory();
         inv.clear();
-        ItemStack[] l = layoutFor(p, mode);
+        ItemStack[] l = layoutFor(p, mode, key);
         for (int i = 0; i < 36; i++) {
             if (l[i] != null) inv.setItem(i, tag(l[i].clone()));
         }
@@ -119,6 +141,38 @@ final class KitManager {
         if (l[38] != null) inv.setLeggings(tag(l[38].clone()));
         if (l[39] != null) inv.setBoots(tag(l[39].clone()));
         if (l[40] != null) inv.setItemInOffHand(tag(l[40].clone()));
+    }
+
+    // ------------------------------------------------------------ arena items (kit selector, effects)
+
+    /** Gives the items from "arena-items" (kit selector, effects). They are removed with the kit. */
+    void giveArenaItems(Player p, boolean custom) {
+        if (!plugin.getConfig().getBoolean("arena-items.enabled", true)) return;
+        ConfigurationSection items = plugin.getConfig().getConfigurationSection("arena-items.items");
+        if (items == null) return;
+        for (String key : items.getKeys(false)) {
+            ConfigurationSection s = items.getConfigurationSection(key);
+            if (s == null) continue;
+            Material m = Material.matchMaterial(s.getString("material", "STONE"));
+            if (m == null) m = Material.STONE;
+            ItemStack it = new ItemStack(m);
+            ItemMeta meta = it.getItemMeta();
+            meta.displayName(Text.c(s.getString("name", key)));
+            List<Component> lore = new ArrayList<>();
+            for (String line : s.getStringList("lore")) lore.add(Text.c(line));
+            meta.lore(lore);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            meta.getPersistentDataContainer().set(arenaItemKey, PersistentDataType.STRING, key);
+            it.setItemMeta(meta);
+            tag(it);
+            int slot = custom ? s.getInt("custom-slot", s.getInt("slot", 35)) : s.getInt("slot", 35);
+            if (slot >= 0 && slot < 36) p.getInventory().setItem(slot, it);
+        }
+    }
+
+    String arenaItemId(ItemStack it) {
+        if (it == null || it.getType().isAir() || !it.hasItemMeta()) return null;
+        return it.getItemMeta().getPersistentDataContainer().get(arenaItemKey, PersistentDataType.STRING);
     }
 
     // ------------------------------------------------------------ parsing

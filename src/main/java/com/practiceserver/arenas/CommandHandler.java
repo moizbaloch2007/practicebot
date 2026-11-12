@@ -25,6 +25,8 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
         switch (cmd.getName().toLowerCase(Locale.ROOT)) {
             case "practicecore" -> core(sender, args);
             case "leave" -> player(sender, p -> plugin.sessions().leave(p));
+            case "kits" -> player(sender, p -> plugin.menus().openKitSelect(p));
+            case "effects" -> player(sender, p -> plugin.menus().openEffects(p));
             case "spawn" -> player(sender, p -> {
                 if (plugin.sessions().get(p.getUniqueId()) != null) plugin.sessions().leave(p);
                 else if (plugin.lobby().teleport(p)) plugin.lobby().giveItemsLater(p, 3L);
@@ -52,7 +54,9 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
         }
         switch (a[0].toLowerCase(Locale.ROOT)) {
             case "play" -> player(s, p -> plugin.menus().openModes(p, false));
-            case "kit", "kits", "editor" -> player(s, p -> plugin.menus().openModes(p, true));
+            case "kit", "kits", "editor" -> player(s, p -> plugin.menus().openKitSelect(p));
+            case "custom" -> player(s, p -> plugin.menus().openTypes(p, "custom", "custom"));
+            case "effects" -> player(s, p -> plugin.menus().openEffects(p));
             case "fight", "start" -> player(s, p -> plugin.sessions().fight(p));
             case "leave", "lobby" -> player(s, p -> plugin.sessions().leave(p));
             case "admin" -> {
@@ -64,7 +68,9 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
             }
             default -> {
                 Text.send(s, "&e/pc &7- open the menu");
-                Text.send(s, "&e/pc kit &7- kit editor");
+                Text.send(s, "&e/pc kit &7- choose or edit your kits (also /kits)");
+                Text.send(s, "&e/pc custom &7- custom mode, use /spawnbot yourself");
+                Text.send(s, "&e/pc effects &7- give yourself effects (also /effects)");
                 Text.send(s, "&e/pc fight &7- start the fight");
                 Text.send(s, "&e/pc leave &7- back to the lobby");
             }
@@ -76,24 +82,13 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
             Text.send(s, "&cYou do not have permission.");
             return;
         }
-        if (a.length == 0) {
-            Text.send(s, "&e/parena setlobby &7- set the lobby spawn where you stand");
-            Text.send(s, "&e/parena create <type> <id> &7- new arena of a type");
-            Text.send(s, "&e/parena addspawn <id> &7- add your position as a player slot");
-            Text.send(s, "&e/parena slots <id> &7- list the slots of an arena");
-            Text.send(s, "&e/parena setspawn <id> <slot> &7- move a slot to where you stand");
-            Text.send(s, "&e/parena removespawn <id> <slot> &7- delete a slot");
-            Text.send(s, "&e/parena sync <id> &7- copy this arena's slots to its clones");
-            Text.send(s, "&e/parena interval [minutes] &7- show or change the reset time");
-            Text.send(s, "&e/parena status &7- arenas, free slots and time until reset");
-            Text.send(s, "&e/parena remove <id> &7- delete an arena");
-            Text.send(s, "&e/parena list &7- show arenas and slots");
-            Text.send(s, "&e/parena tp <id> [slot] &7- teleport to a spawn");
-            Text.send(s, "&e/parena save <id> &7- save your //wand selection as the clean copy of this arena");
-            Text.send(s, "&e/parena clone <id> [count] &7- make copies with the same spawn points");
-            Text.send(s, "&e/parena regen <id> [slot] &7- restore one slot now (test)");
-            Text.send(s, "&e/parena regenall <id> &7- restore the whole arena now");
-            Text.send(s, "&e/parena reload &7- reload config and arenas");
+        if (a.length == 0 || a[0].equalsIgnoreCase("help")) {
+            Text.send(s, "&b&lPracticeCore admin &7(use /parena <command>)");
+            Text.send(s, "&6Setup: &esetlobby&7, &ecreate <type> <id>&7, &eremove <id>&7, &elist&7, &estatus&7, &etp <id> [slot]");
+            Text.send(s, "&6Slots: &eaddspawn <id>&7, &eslots <id>&7, &esetspawn <id> <slot>&7, &eremovespawn <id> <slot>&7, &esync <id>");
+            Text.send(s, "&6Reset: &esave <id>&7, &eclone <id> [count]&7, &eregen <id> [slot]&7, &eregenall [id]&7, &eextend <id|all> <minutes>");
+            Text.send(s, "&6Settings: &eset &7(shows values)&7, &eset prep|countdown|interval|radius <value>&7, &ereload");
+            Text.send(s, "&7sync = copy the slots of one arena to all of its clones (use it after you move or add slots).");
             return;
         }
         ArenaManager am = plugin.arenas();
@@ -260,13 +255,78 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
             }
             case "regenall" -> {
                 if (plugin.regen() == null) { Text.send(s, "&cNeeds FastAsyncWorldEdit and regen.enabled: true."); return; }
-                if (a.length < 2) { Text.send(s, "&cUsage: /parena regenall <id>"); return; }
+                if (a.length < 2) {
+                    int started = 0;
+                    int busy = 0;
+                    for (Arena ar : am.all()) {
+                        if (!ar.canRegen()) continue;
+                        if (!ar.taken.isEmpty() || !ar.regenerating.isEmpty()) { busy++; continue; }
+                        plugin.regen().fullRegen(ar);
+                        ar.dirty = false;
+                        started++;
+                    }
+                    Text.send(s, "&aRestoring &f" + started + " &aarena(s)." + (busy > 0 ? " &e" + busy + " skipped (players inside or already resetting)." : ""));
+                    return;
+                }
                 Arena ar = am.get(a[1]);
                 if (ar == null) { Text.send(s, "&cNo such arena."); return; }
                 if (!ar.canRegen()) { Text.send(s, "&cThis arena has no snapshot yet. Use /parena save."); return; }
                 if (!ar.taken.isEmpty()) { Text.send(s, "&cPlayers are inside this arena right now."); return; }
                 plugin.regen().fullRegen(ar);
+                ar.dirty = false;
                 Text.send(s, "&aRestoring the whole arena &f" + ar.id + "&a...");
+            }
+            case "extend" -> {
+                if (plugin.regen() == null) { Text.send(s, "&cTimed reset needs FastAsyncWorldEdit and regen.enabled: true."); return; }
+                if (a.length < 3 || !a[2].matches("\\d+")) { Text.send(s, "&cUsage: /parena extend <id|all> <minutes>"); return; }
+                int minutes = Integer.parseInt(a[2]);
+                if (minutes < 1 || minutes > 1440) { Text.send(s, "&cMinutes must be 1-1440."); return; }
+                if (a[1].equalsIgnoreCase("all")) {
+                    for (Arena ar : am.all()) if (ar.canRegen()) plugin.regen().extend(ar, minutes);
+                    Text.send(s, "&aAdded &f" + minutes + " &aextra minutes to every arena.");
+                } else {
+                    Arena ar = am.get(a[1]);
+                    if (ar == null) { Text.send(s, "&cNo such arena."); return; }
+                    plugin.regen().extend(ar, minutes);
+                    Text.send(s, "&aAdded &f" + minutes + " &aextra minutes to &f" + ar.id + "&a.");
+                }
+            }
+            case "set" -> {
+                if (a.length < 3) {
+                    Text.send(s, "&7prep: &f" + plugin.prepSeconds() + "s &7(time to set up the kit)");
+                    Text.send(s, "&7countdown: &f" + plugin.countdownSeconds() + "s");
+                    Text.send(s, "&7interval: &f" + (plugin.regen() == null ? "-" : plugin.regen().intervalMinutes() + " min") + " &7(arena reset time)");
+                    Text.send(s, "&7radius: &f" + plugin.regenRadius() + " blocks &7(restore area around a slot)");
+                    Text.send(s, "&eChange: /parena set <prep|countdown|interval|radius> <number>");
+                    return;
+                }
+                if (!a[2].matches("\\d+")) { Text.send(s, "&cThe value must be a number."); return; }
+                int v = Integer.parseInt(a[2]);
+                switch (a[1].toLowerCase(Locale.ROOT)) {
+                    case "prep" -> {
+                        if (v < 0 || v > 300) { Text.send(s, "&cPrep time must be 0-300 seconds (0 = wait for /fight)."); return; }
+                        plugin.lobby().dataSet("settings.prep", v);
+                        Text.send(s, "&aPrep time is now &f" + v + "s&a.");
+                    }
+                    case "countdown" -> {
+                        if (v < 0 || v > 30) { Text.send(s, "&cCountdown must be 0-30 seconds."); return; }
+                        plugin.lobby().dataSet("settings.countdown", v);
+                        Text.send(s, "&aCountdown is now &f" + v + "s&a.");
+                    }
+                    case "interval" -> {
+                        if (plugin.regen() == null) { Text.send(s, "&cTimed reset needs FastAsyncWorldEdit and regen.enabled: true."); return; }
+                        if (v < 1 || v > 1440) { Text.send(s, "&cMinutes must be 1-1440."); return; }
+                        plugin.lobby().dataSet("settings.interval-minutes", v);
+                        plugin.regen().resetTimers();
+                        Text.send(s, "&aArenas now reset every &f" + v + " &aminutes.");
+                    }
+                    case "radius" -> {
+                        if (v < 10 || v > 200) { Text.send(s, "&cRadius must be 10-200 blocks."); return; }
+                        plugin.lobby().dataSet("settings.radius", v);
+                        Text.send(s, "&aRestore radius is now &f" + v + "&a. Keep slots at least &f" + (v * 2) + " &ablocks apart.");
+                    }
+                    default -> Text.send(s, "&cUnknown setting. Use prep, countdown, interval or radius.");
+                }
             }
             case "regen" -> {
                 if (plugin.regen() == null) { Text.send(s, "&cNeeds FastAsyncWorldEdit and regen.enabled: true."); return; }
@@ -297,19 +357,27 @@ final class CommandHandler implements CommandExecutor, TabCompleter {
         List<String> out = new ArrayList<>();
         String name = cmd.getName().toLowerCase(Locale.ROOT);
         if (name.equals("practicecore") && args.length == 1) {
-            for (String x : new String[]{"play", "kit", "fight", "leave", "admin"})
+            for (String x : new String[]{"play", "custom", "kit", "effects", "fight", "leave", "admin"})
                 if (x.startsWith(args[0].toLowerCase(Locale.ROOT))) out.add(x);
             return out;
         }
         if (!name.equals("parena")) return out;
         if (args.length == 1) {
-            for (String x : new String[]{"setlobby", "create", "addspawn", "slots", "setspawn", "removespawn", "sync", "interval", "status", "remove", "list", "tp", "save", "clone", "regen", "regenall", "reload"})
+            for (String x : new String[]{"help", "setlobby", "create", "addspawn", "slots", "setspawn", "removespawn", "sync", "interval", "extend", "set", "status", "remove", "list", "tp", "save", "clone", "regen", "regenall", "reload"})
                 if (x.startsWith(args[0].toLowerCase(Locale.ROOT))) out.add(x);
         } else if (args.length == 2 && args[0].equalsIgnoreCase("create")) {
             ConfigurationSection types = plugin.getConfig().getConfigurationSection("arena-types");
             if (types != null) out.addAll(types.getKeys(false));
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("set")) {
+            for (String x : new String[]{"prep", "countdown", "interval", "radius"})
+                if (x.startsWith(args[1].toLowerCase(Locale.ROOT))) out.add(x);
         } else if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("extend")) out.add("all");
             for (Arena ar : plugin.arenas().all()) out.add(ar.id);
+        } else if (args.length == 3 && (args[0].equalsIgnoreCase("setspawn") || args[0].equalsIgnoreCase("removespawn")
+                || args[0].equalsIgnoreCase("regen") || args[0].equalsIgnoreCase("tp"))) {
+            Arena ar = plugin.arenas().get(args[1]);
+            if (ar != null) for (int i = 1; i <= ar.spawns.size(); i++) out.add(String.valueOf(i));
         }
         return out;
     }

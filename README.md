@@ -7,8 +7,8 @@ PracticeCore/
   README.md
   src/main/resources/plugin.yml
   src/main/resources/config.yml
-  src/main/java/com/practiceserver/arenas/   <- only the 17 .java files
-      Arena ArenaManager ArenasPlugin BotCleaner CommandHandler DialogMenus
+  src/main/java/com/practiceserver/arenas/   <- only the 18 .java files
+      Arena ArenaManager ArenasPlugin BotCleaner CommandHandler DialogMenus EffectsManager
       KitEditor KitManager LayoutManager LobbyListener LobbyManager MenuManager
       RegenManager SessionListener SessionManager SpawnPoint Text (+ .java each)
   server-files/pa_templates.yml          <- NOT for GitHub, see B)
@@ -30,3 +30,8 @@ Your .github/workflows/main.yml on GitHub stays as it is.
 Replace only plugins/PracticeCore.jar and restart. Do NOT delete the plugins/PracticeCore folder:
   arenas.yml, snapshots/, layouts.yml, data.yml and config.yml are all kept.
 Your arenas world is not touched.
+
+## E) Version 1.4 - what changed
+- Delete ONLY plugins/PracticeCore/config.yml once so the new default is created
+  (new: custom mode, effects, arena items, prep 10s). arenas.yml, snapshots/, layouts.yml, data.yml stay.
+- Old saved kits become "Kit 1" of their mode automatically.

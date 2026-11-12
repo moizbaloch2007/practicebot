@@ -48,6 +48,15 @@ final class DialogMenus {
         p.showDialog(dialog);
     }
 
+    /** Generic list of buttons (kits, effects). */
+    void showList(Player p, String title, List<MenuManager.Entry> entries, int columns) {
+        List<ActionButton> buttons = new ArrayList<>();
+        for (MenuManager.Entry e : entries) {
+            buttons.add(button(e.label(), e.lore(), e.action()));
+        }
+        show(p, title, buttons, columns);
+    }
+
     void openHub(Player p) {
         ConfigurationSection hub = plugin.getConfig().getConfigurationSection("hub");
         if (hub == null) return;
@@ -102,7 +111,7 @@ final class DialogMenus {
             lore.addAll(plugin.menus().arenaInfo(key));
             int cap = plugin.arenas().capacity(key);
             String label = s.getString("name", key)
-                    + (cap == 0 ? " &c(not built)" : " &7(" + plugin.arenas().freeSlots(key) + " free slots)");
+                    + (cap == 0 ? " &c(not built)" : " &7(" + plugin.arenas().used(key) + "/" + cap + ")");
             buttons.add(button(label, lore, pl -> plugin.menus().typeClicked(pl, mode, diff, key)));
         }
         show(p, plugin.getConfig().getString("menus.type-title", "&lChoose Arena"), buttons, 2);

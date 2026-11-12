@@ -19,7 +19,7 @@ bot-distance: 8.0
 # After picking an arena the player gets this many seconds to set up their
 # kit. The fight also starts when they type /fight or click the START button.
 # Set 0 to wait forever for /fight.
-prep-seconds: 30
+prep-seconds: 10
 
 # Countdown (3, 2, 1) before the bot spawns.
 countdown-seconds: 3
@@ -27,13 +27,80 @@ countdown-seconds: 3
 # Players who die lose their kit instead of dropping it in the arena.
 clear-drops-on-death: true
 
-# When a fight ends the player's bots are removed (so an old bot never attacks
-# the same player later). The plugin lists the player's bots with PracticeBot's
-# command and runs the despawn command for every id it finds.
+# When a fight ends (death, /leave, lobby, quit) the player's bots are removed at once through
+# PracticeBot's API, so an old bot can never attack the same player again. The commands below
+# are only a fallback if the API is not available.
 bot-cleanup:
   enabled: true
+  sweep: true             # every 2 seconds, remove bots of players who are not in a practice session
+                          # (admins with practicecore.bypass are ignored, so you can still test bots)
   list-command: "pbadmin bot list --target {player}"
   despawn-command: "pbadmin bot despawn {id}"
+
+# ---------------------------------------------------------- custom mode
+# Custom mode: the player picks an arena, gets NO kit and NO automatic bot. They choose a kit with
+# /kits and control their bot with PracticeBot's own /spawnbot menu (settings, type, start).
+custom-mode:
+  auto-spawnbot: true     # open the /spawnbot menu automatically one second after arriving
+
+# ---------------------------------------------------------- items inside an arena
+# slot = position in a normal session. custom-slot = position in custom mode (empty inventory).
+# action = a command the player runs when they click the item.
+arena-items:
+  enabled: true
+  items:
+    kits:
+      slot: 34
+      custom-slot: 7
+      material: BOOK
+      name: "&b&lKits &7(Right Click)"
+      lore: ["&7Choose your default or custom kit"]
+      action: "kits"
+    effects:
+      slot: 35
+      custom-slot: 8
+      material: BREWING_STAND
+      name: "&d&lEffects &7(Right Click)"
+      lore: ["&7Give yourself regeneration, health boost..."]
+      action: "effects"
+
+# Effects players can give themselves (no permission needed). Keep them weak so nobody is unbeatable.
+effects:
+  enabled: true
+  allow-in-fight: true
+  list:
+    regeneration:
+      name: "&c&lRegeneration I"
+      icon: GHAST_TEAR
+      effect: regeneration
+      level: 1
+      seconds: 120
+      lore: ["&7Slowly heals you"]
+    health_boost:
+      name: "&6&lHealth Boost II"
+      icon: GOLDEN_APPLE
+      effect: health_boost
+      level: 2
+      seconds: 300
+      lore: ["&7+4 extra hearts"]
+    absorption:
+      name: "&e&lAbsorption I"
+      icon: GOLDEN_CARROT
+      effect: absorption
+      level: 1
+      seconds: 120
+      lore: ["&7+2 yellow hearts"]
+    fire_resistance:
+      name: "&6&lFire Resistance"
+      icon: MAGMA_CREAM
+      effect: fire_resistance
+      level: 1
+      seconds: 180
+      lore: ["&7Useful for UHC and cart"]
+  clear:
+    name: "&7&lRemove all effects"
+    icon: MILK_BUCKET
+    lore: ["&7Clears every effect you have"]
 
 # ---------------------------------------------------------- lobby
 # Spawn point: /parena setlobby. Players land there on join, respawn, /spawn and /leave.
@@ -96,6 +163,7 @@ auto-regen:
   warn-seconds: [60, 30, 10, 5, 4, 3, 2, 1]
 
 menus:
+  show-arena-list: false    # true = also list every arena (id and players) in the arena tooltip
   style: dialog           # dialog = Minecraft dialog windows (Paper 1.21.7+), chest = inventory menus
   hub-title: "&8&lPracticeCore"
   hub-size: 27
@@ -106,6 +174,10 @@ menus:
   diff-size: 27
   type-title: "&8&lChoose Arena"
   type-size: 27
+  kit-slot-title: "&8&lEdit a Kit"
+  kit-mode-title: "&8&lKits - Choose Mode"
+  kit-select-title: "&8&lChoose Your Kit"
+  effects-title: "&8&lEffects"
   filler: true
 
 messages:
@@ -118,7 +190,16 @@ messages:
   no-session: "&cYou are not in a practice session. Use &e/pc&c."
   regen-warning: "&eThis arena resets in &f{s} &eseconds."
   regen-kick: "&eThe arena is being reset. You were sent back to the lobby."
-  kit-saved: "&aKit layout saved."
+  custom-start: "&aCustom mode: no kit and no bot yet. Pick a kit with &e/kits&a, then use &e/spawnbot &ato set up and start your own bot."
+  custom-help: "&7Effects: &e/effects&7. Leave: &e/leave&7. Your bots are removed when you leave."
+  custom-no-fight: "&7Custom mode has no /fight. Use &e/spawnbot &7to control your bot."
+  kit-locked: "&cYou can only change your kit before the fight starts."
+  kit-applied: "&aKit changed."
+  effect-given: "&aEffect added: &f{name}"
+  effects-cleared: "&aAll effects removed."
+  effects-no-session: "&cYou can only use effects inside a practice arena."
+  effects-locked: "&cEffects can only be used before the fight starts."
+  kit-saved: "&aKit {n} saved and selected for this mode."
   kit-reset: "&eKit reset to the default layout."
   kit-deleted: "&cItem deleted from the kit."
   kit-added: "&aAdded to your kit."
@@ -128,17 +209,22 @@ messages:
 # ---------------------------------------------------------- main menu
 hub:
   play:
-    slot: 11
+    slot: 10
     icon: DIAMOND_SWORD
     name: "&a&lPlay"
     lore: ["&7Pick a mode, difficulty and arena"]
+  custom:
+    slot: 12
+    icon: COMPARATOR
+    name: "&d&lCustom Bot"
+    lore: ["&7Pick an arena, then set up your own", "&7bot with /spawnbot"]
   editor:
-    slot: 13
+    slot: 14
     icon: ANVIL
     name: "&e&lKit Editor"
-    lore: ["&7Arrange your kit for each mode"]
+    lore: ["&7Make up to 3 kits for each mode"]
   leave:
-    slot: 15
+    slot: 16
     icon: RED_BED
     name: "&c&lBack to Lobby"
     lore: ["&7Leave your practice session"]

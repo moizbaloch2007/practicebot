@@ -15,6 +15,7 @@ public final class ArenasPlugin extends JavaPlugin {
     private BotCleaner cleaner;
     private RegenManager regen;
     private LobbyManager lobby;
+    private EffectsManager effects;
 
     @Override
     public void onEnable() {
@@ -27,6 +28,7 @@ public final class ArenasPlugin extends JavaPlugin {
         sessions = new SessionManager(this);
         cleaner = new BotCleaner(this);
         lobby = new LobbyManager(this);
+        effects = new EffectsManager(this);
         arenas.load();
         layouts.load();
 
@@ -50,7 +52,7 @@ public final class ArenasPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new LobbyListener(this), this);
 
         CommandHandler handler = new CommandHandler(this);
-        for (String name : new String[]{"practicecore", "leave", "fight", "spawn", "parena"}) {
+        for (String name : new String[]{"practicecore", "leave", "fight", "spawn", "kits", "effects", "parena"}) {
             PluginCommand pc = getCommand(name);
             if (pc != null) {
                 pc.setExecutor(handler);
@@ -75,6 +77,12 @@ public final class ArenasPlugin extends JavaPlugin {
     BotCleaner cleaner() { return cleaner; }
     RegenManager regen() { return regen; }
     LobbyManager lobby() { return lobby; }
+    EffectsManager effects() { return effects; }
+
+    // Values that /parena set can change (kept in data.yml). Fall back to config.yml.
+    int prepSeconds() { return lobby.dataInt("settings.prep", getConfig().getInt("prep-seconds", 10)); }
+    int countdownSeconds() { return lobby.dataInt("settings.countdown", getConfig().getInt("countdown-seconds", 3)); }
+    int regenRadius() { return lobby.dataInt("settings.radius", getConfig().getInt("regen.radius", 60)); }
 
     String msg(String key, String def) {
         String prefix = getConfig().getString("messages.prefix", "&8[&bPractice&8] ");

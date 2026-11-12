@@ -249,7 +249,7 @@ final class RegenManager {
     }
 
     private int radius() {
-        return plugin.getConfig().getInt("regen.radius", 60);
+        return plugin.regenRadius();
     }
 
     private int below() {
@@ -375,6 +375,14 @@ final class RegenManager {
 
     private long intervalMs() {
         return intervalMinutes() * 60_000L;
+    }
+
+    /** Adds extra time before this arena's next reset. */
+    void extend(Arena a, int minutes) {
+        long now = System.currentTimeMillis();
+        long next = nextReset.getOrDefault(a.id, now + intervalMs());
+        nextReset.put(a.id, Math.max(next, now) + minutes * 60_000L);
+        a.locked = false;
     }
 
     /** Restart every arena's countdown (used after the interval changed). */

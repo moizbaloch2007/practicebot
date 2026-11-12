@@ -41,16 +41,18 @@ final class KitEditor implements Listener {
 
     static final class EditorHolder implements InventoryHolder {
         final String mode;
+        final int slot;
         Inventory inventory;
-        EditorHolder(String mode) { this.mode = mode; }
+        EditorHolder(String mode, int slot) { this.mode = mode; this.slot = slot; }
         @Override public Inventory getInventory() { return inventory; }
     }
 
     static final class ExtrasHolder implements InventoryHolder {
         final String mode;
+        final int slot;
         final List<ItemStack> items = new ArrayList<>();
         Inventory inventory;
-        ExtrasHolder(String mode) { this.mode = mode; }
+        ExtrasHolder(String mode, int slot) { this.mode = mode; this.slot = slot; }
         @Override public Inventory getInventory() { return inventory; }
     }
 
@@ -73,22 +75,22 @@ final class KitEditor implements Listener {
 
     // ------------------------------------------------------------ open
 
-    void open(Player p, String mode) {
-        ItemStack[] layout = plugin.kits().layoutFor(p, mode);
+    void open(Player p, String mode, int slot) {
+        ItemStack[] layout = plugin.kits().slotLayout(p, mode, slot);
         ItemStack[] copy = new ItemStack[LayoutManager.SIZE];
         for (int i = 0; i < copy.length; i++) copy[i] = layout[i] == null ? null : layout[i].clone();
         working.put(p.getUniqueId(), copy);
-        showEditor(p, mode);
+        showEditor(p, mode, slot);
     }
 
-    private void showEditor(Player p, String mode) {
+    private void showEditor(Player p, String mode, int slot) {
         ItemStack[] w = working.get(p.getUniqueId());
         if (w == null) {
-            open(p, mode);
+            open(p, mode, slot);
             return;
         }
-        EditorHolder h = new EditorHolder(mode);
-        Inventory inv = Bukkit.createInventory(h, 54, Text.c("&8Editing Kit: &b" + modeName(mode)));
+        EditorHolder h = new EditorHolder(mode, slot);
+        Inventory inv = Bukkit.createInventory(h, 54, Text.c("&8Editing: &b" + modeName(mode) + " &8- Kit " + slot));
         h.inventory = inv;
 
         for (int i = 0; i < 27; i++) inv.setItem(i, w[9 + i] == null ? null : w[9 + i].clone());
@@ -118,8 +120,8 @@ final class KitEditor implements Listener {
         p.openInventory(inv);
     }
 
-    private void openExtras(Player p, String mode) {
-        ExtrasHolder h = new ExtrasHolder(mode);
+    private void openExtras(Player p, String mode, int slot) {
+        ExtrasHolder h = new ExtrasHolder(mode, slot);
         Inventory inv = Bukkit.createInventory(h, 45, Text.c("&8Extra Materials: &b" + modeName(mode)));
         h.inventory = inv;
         int i = 0;
@@ -266,22 +268,23 @@ final class KitEditor implements Listener {
                 return;
             }
             harvest(id, top);
-            plugin.layouts().set(id, h.mode, working.get(id));
+            plugin.layouts().set(id, h.mode, h.slot, working.get(id));
+            plugin.layouts().select(id, h.mode, String.valueOf(h.slot));
             working.remove(id);
             Bukkit.getScheduler().runTask(plugin, () -> p.closeInventory());
-            Text.send(p, plugin.msg("kit-saved", "&aKit layout saved."));
+            Text.send(p, plugin.msg("kit-saved", "&aKit {n} saved and selected for this mode.").replace("{n}", String.valueOf(h.slot)));
         } else if (raw == ADD) {
             if (hasItem(e.getCursor())) {
                 Text.send(p, plugin.msg("kit-cursor", "&cPut the item you are holding on a slot first."));
                 return;
             }
             harvest(id, top);
-            Bukkit.getScheduler().runTask(plugin, () -> openExtras(p, h.mode));
+            Bukkit.getScheduler().runTask(plugin, () -> openExtras(p, h.mode, h.slot));
         } else if (raw == RESET) {
             p.setItemOnCursor(null);
-            plugin.layouts().reset(id, h.mode);
+            plugin.layouts().reset(id, h.mode, h.slot);
             working.put(id, plugin.kits().defaultLayout(h.mode));
-            Bukkit.getScheduler().runTask(plugin, () -> showEditor(p, h.mode));
+            Bukkit.getScheduler().runTask(plugin, () -> showEditor(p, h.mode, h.slot));
             Text.send(p, plugin.msg("kit-reset", "&eKit reset to the default layout."));
         } else if (raw == CLOSE) {
             working.remove(id);
@@ -295,7 +298,7 @@ final class KitEditor implements Listener {
         if (raw < 0 || raw >= 45) return;
         UUID id = p.getUniqueId();
         if (raw == BACK) {
-            Bukkit.getScheduler().runTask(plugin, () -> showEditor(p, x.mode));
+            Bukkit.getScheduler().runTask(plugin, () -> showEditor(p, x.mode, x.slot));
             return;
         }
         if (raw >= x.items.size()) return;

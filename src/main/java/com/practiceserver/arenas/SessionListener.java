@@ -8,7 +8,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 
@@ -20,6 +23,19 @@ final class SessionListener implements Listener {
 
     SessionListener(ArenasPlugin plugin) {
         this.plugin = plugin;
+    }
+
+    /** Right/left click with the kit selector or effects item. */
+    @EventHandler(priority = org.bukkit.event.EventPriority.HIGH)
+    public void onUse(PlayerInteractEvent e) {
+        if (e.getHand() != EquipmentSlot.HAND || e.getAction() == Action.PHYSICAL) return;
+        String id = plugin.kits().arenaItemId(e.getItem());
+        if (id == null) return;
+        e.setCancelled(true);
+        String action = plugin.getConfig().getString("arena-items.items." + id + ".action", "");
+        if (action != null && !action.isBlank()) {
+            org.bukkit.Bukkit.dispatchCommand(e.getPlayer(), action.trim());
+        }
     }
 
     @EventHandler
